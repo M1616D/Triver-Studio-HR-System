@@ -243,3 +243,33 @@ npm run check-samples   # clone every sample for a business of its category
 - Keep the passphrase somewhere you will still have it in two years, and the
   recovery code somewhere else.
 - Nothing here expires, needs a subscription, or depends on a server of ours.
+
+---
+
+## 9. Your social profiles
+
+Settings → **Social & business profiles** holds every place the studio can be found —
+website, portfolio, Telegram channel and group, WhatsApp, Instagram, Facebook, TikTok,
+LinkedIn, Upwork, Fiverr, Afriwork and GitHub. Type a full link or just the handle. The
+small round links appear at the bottom of the sidebar as soon as a field has a value, and a
+blank field stays hidden — nothing needs switching on.
+
+---
+
+## 10. The sample designs
+
+The nine designs in `assets/js/samples.real.js` are your own uploads, **used exactly as you
+wrote them**. When a client comes, the generator changes only the information inside a
+design — the name, phone, address, map, socials, opening hours and copy. It never redraws,
+restyles or re-creates a layout.
+
+```bash
+npm run measure-samples    # what each uploaded design needs from disk
+npm run import-samples     # rebuild the designs from .sample-preview/
+npm run optimize-samples   # shrink the carried photos to web size
+npm run check-samples      # clone one design per category and verify it
+```
+
+`samples/assets/<id>/` holds each design's own pictures and fonts, copied out so the clones
+keep their real images. `.sample-preview/` — the uploaded library — stays out of the
+repository, which is why the repo is small enough to push.
