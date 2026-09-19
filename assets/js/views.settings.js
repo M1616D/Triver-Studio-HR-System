@@ -316,6 +316,32 @@
       '</div>', 'mb-4');
   }
 
+  /* ------------------------------- the session ------------------------------ */
+  function accountCard() {
+    const signedIn = App.auth && App.auth.signedIn();
+    const mode = (App.auth && App.auth.mode()) || '';
+    const account = (App.auth && App.auth.account()) || '';
+    const where = mode === 'google' ? 'Signed in with Google' + (account ? ' · ' + account : '')
+      : mode === 'passphrase' ? 'Unlocked with the workspace passphrase'
+        : 'Opened on this device';
+    return ui.card(
+      anchor('account') + ui.head('This device',
+        '<span class="tone tone-' + (signedIn ? 'lime' : 'amber') + ' text-[10px] px-2.5 py-1 rounded-full border">' +
+        (signedIn ? 'signed in' : 'sign-in page') + '</span>',
+        'One workspace, many devices — signing out never deletes anything') +
+      '<div class="grid grid-cols-1 md:grid-cols-3 gap-3 mb-3">' +
+      ui.kv('How this session opened', U.esc(where)) +
+      ui.kv('Signed in since', App.auth && App.auth.signedInAt() ? U.relTime(App.auth.signedInAt()) : '—') +
+      ui.kv('Where your data lives', App.cloud.configured() ? 'this device and your Google Drive' : 'this device only — connect Drive above') +
+      '</div>' +
+      '<div class="btn-row">' +
+      '<button class="btn btn-ghost" data-action="auth.signIn"><i class="fa-solid fa-arrow-right-to-bracket"></i> Show the sign-in page</button>' +
+      '<button class="btn btn-ghost" data-action="auth.signOut"><i class="fa-solid fa-arrow-right-from-bracket"></i> Sign out of this device</button>' +
+      '</div>' +
+      '<p class="text-[10px] text-textMuted mt-3 leading-relaxed">Signing out stops this browser from opening the workspace on its own. ' +
+      'Your records stay exactly where they are, and the passphrase or the Google sign-in brings it all back.</p>', 'mb-4');
+  }
+
   function availableText() {
     if (App.vault.available()) return '';
     return 'This browser is blocking the encryption tools (Web Crypto). Open the app over http://localhost — run “npm start” in the project folder — and protection will work normally.';
@@ -426,7 +452,7 @@
         '<a class="chip" href="#settings-' + k[0] + '">' + U.esc(k[1]) + '</a>').join('');
       el.innerHTML =
         '<div class="flex flex-wrap gap-1.5 mb-4">' + chips + '</div>' +
-        companyCard() + socialsCard() + brandingCard() + securityCard() + cloudCard() +
+        companyCard() + socialsCard() + brandingCard() + accountCard() + securityCard() + cloudCard() +
         discoveryCard() + aiCard() + outreachCard() + messagesCard() + integrationCard() + dataCard() +
         helpCard() +
         ui.card(ui.head('About') +

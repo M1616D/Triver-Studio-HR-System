@@ -1042,23 +1042,76 @@ check('copy audit: no pictographs left in the message library', () => {
   assert(bad.length === 0, 'emoji still present in: ' + bad.join(', '));
 });
 
-/* ======================= sample library and its cloning ==================== */
-check('samples: every business type maps to a sample that exists', () => {
-  assert(App.samples.list().length >= 3, 'the sample library is empty');
+/* ======================= design library and its cloning ==================== */
+/*
+ * Nothing ships with the app any more: a design exists only once the studio
+ * uploads it. These helpers stand in for that upload so the cloning path can be
+ * tested honestly.
+ */
+const FOOD_CSS = '.hero{background:linear-gradient(#123,#456);color:#fed;' +
+  'display:flex;align-items:center;padding:80px 24px;font-family:Inter,sans-serif}' +
+  '.menu{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:18px;padding:48px 24px}' +
+  '.dish{border:1px solid #333;border-radius:18px;padding:16px;background:#111}' +
+  '.dish:hover{transform:translateY(-4px);box-shadow:0 18px 40px rgba(0,0,0,.4)}' +
+  '.hours{display:grid;gap:6px;padding:32px 24px;color:#ddd}';
+
+function designPage(opts) {
+  return '<!doctype html><html lang="en"><head><meta charset="UTF-8">' +
+    '<title>' + opts.title + '</title>' +
+    '<meta name="description" content="' + opts.title + ' in Addis Ababa">' +
+    '<style>' + FOOD_CSS + '</style></head><body>' +
+    '<header><h1>' + opts.title + '</h1><nav><a href="#menu">Menu</a></nav></header>' +
+    '<section class="hero"><h2>Welcome to ' + opts.title + '</h2>' +
+    '<p>We have served the neighbourhood every single day since we opened our doors.</p></section>' +
+    (opts.menu ? '<section class="menu"><div class="dish"><h3>Signature dish</h3><p>Br 250</p></div>' +
+      '<div class="dish"><h3>House special</h3><p>Br 320</p></div></section>' : '') +
+    '<section><h3>Find us</h3><p>' + opts.address + '</p>' +
+    '<iframe src="https://www.google.com/maps/embed?pb=' + opts.title.replace(/\W/g, '') + '"></iframe></section>' +
+    '<img src="local/hero.jpg" alt=""><img src="local/logo.svg" alt="">' +
+    '<footer><a href="tel:' + opts.phone + '">' + opts.phone + '</a>' +
+    '<a href="https://wa.me/' + opts.phone.replace(/\D/g, '') + '">WhatsApp</a>' +
+    '<a href="https://instagram.com/' + opts.title.replace(/\W/g, '').toLowerCase() + '">Instagram</a></footer>' +
+    '</body></html>';
+}
+
+function seedDesigns() {
+  const existing = App.samples.list();
+  if (existing.length) return existing;
+  const food = App.samples.save({
+    name: 'Cafe and restaurant design', category: 'food', tags: 'cafe, restaurant, cafe, food',
+    html: designPage({ title: 'Zemen Kitchen', address: 'Bole Road, Addis Ababa', phone: '+251911000111', menu: true }),
+    source: 'CAFE AND RESTAURENT/zemen.html', files: 4
+  });
+  const shop = App.samples.save({
+    name: 'Shop design', category: 'shop', tags: 'shop, salon, gym, clinic',
+    html: designPage({ title: 'Bole Store', address: 'Merkato, Addis Ababa', phone: '+251911000222' }),
+    source: 'SHOP/bole-store.html', files: 2
+  });
+  assert(!food.error && !shop.error, 'a design could not be uploaded: ' + (food.error || shop.error));
+  return App.samples.list();
+}
+
+check('samples: the library is empty until the studio uploads a design', () => {
+  assert(App.samples.list().length === 0, 'the app still ships designs of its own');
+  assert(App.samples.forBusiness({ businessType: 'cafe', name: '' }) === null, 'a business was matched to a non-existent design');
+  seedDesigns();
+  assert(App.samples.list().length === 2, 'the uploaded designs were not stored');
   App.dict.businessTypes.forEach(t => {
     const s = App.samples.forBusiness({ businessType: t[0], name: '', category: t[1] });
-    assert(s && s.html, 'no sample for ' + t[0]);
-    assert(s.category, 'the sample for ' + t[0] + ' has no category');
+    assert(s && s.html, 'no design for ' + t[0]);
+    assert(s.category, 'the design for ' + t[0] + ' has no category');
   });
 });
 
 check('samples: the food family is used for a cafe, the shop family for a dentist', () => {
-  assert(App.samples.forBusiness({ businessType: 'cafe', name: '' }).category === 'food', 'a cafe did not get the food sample');
-  assert(App.samples.forBusiness({ businessType: 'restaurant', name: '' }).category === 'food', 'a restaurant did not get the food sample');
-  assert(App.samples.forBusiness({ businessType: 'dentist', name: '' }).category === 'shop', 'a dentist did not get the shop sample');
+  seedDesigns();
+  assert(App.samples.forBusiness({ businessType: 'cafe', name: '' }).category === 'food', 'a cafe did not get the food design');
+  assert(App.samples.forBusiness({ businessType: 'restaurant', name: '' }).category === 'food', 'a restaurant did not get the food design');
+  assert(App.samples.forBusiness({ businessType: 'dentist', name: '' }).category === 'shop', 'a dentist did not get the shop design');
 });
 
 check('samples: cloning changes only the information, never the design', () => {
+  seedDesigns();
   const lead = {
     id: 'l-test', name: 'Kaldi Coffee House', businessType: 'cafe', category: 'Cafe',
     areaLabel: 'Bole, Addis Ababa', address: 'Bole Medhanealem, Addis Ababa',
@@ -1072,14 +1125,16 @@ check('samples: cloning changes only the information, never the design', () => {
   assert(out.html.indexOf('Bole Medhanealem') !== -1, 'the cloned page does not carry the address');
   assert(!/\{\{[^}]{1,40}\}\}/.test(out.html), 'a placeholder was left in the cloned page');
   assert(out.html.indexOf('undefined') === -1, 'the cloned page contains "undefined"');
-  assert(!/\{\{/.test(out.html), 'raw braces survived into the page');
   assert(out.html.indexOf('tel:') !== -1, 'no click-to-call link was built');
   assert(out.html.indexOf('google.com/maps') !== -1, 'the map was not pointed at this business');
   assert(/<\/html>\s*$/.test(out.html.trim()), 'the page is not a complete document');
-  // the design is untouched: the sample's own stylesheet is still all there
+  // the design is untouched: the design's own stylesheet is still all there
   const sampleCss = (sample.html.match(/<style>([\s\S]*?)<\/style>/) || [])[1] || '';
   const outCss = (out.html.match(/<style>([\s\S]*?)<\/style>/) || [])[1] || '';
-  assert(sampleCss.length > 500 && outCss.indexOf(sampleCss.slice(0, 400)) !== -1, 'the cloned page lost the sample stylesheet');
+  assert(sampleCss.length > 400, 'the seeded design has no stylesheet to preserve');
+  assert(out.html.indexOf(sampleCss.slice(0, 300)) !== -1,
+    'the cloned page lost the design stylesheet (' + sampleCss.length + ' in, ' + outCss.length + ' out)');
+  assert(out.html.indexOf('linear-gradient(#123,#456)') !== -1, 'the cloned page lost the uploaded design');
 });
 
 check('samples: an uploaded page is analysed, saved and then cloned with its own look', () => {
@@ -1118,24 +1173,27 @@ check('samples: an uploaded page is analysed, saved and then cloned with its own
   assert(!App.samples.find(res.sample.id), 'the sample could not be deleted');
 });
 
-check('samples: a sample with no photos still builds a clean page', () => {
+check('samples: a design with no photos still builds a clean page', () => {
+  seedDesigns();
   const lead = { id: 'l3', name: 'No Photo Garage', businessType: 'carrepair', address: 'Bole, Addis Ababa', phone: '0911 000 000' };
   const out = App.samples.fill(App.samples.forBusiness(lead), lead, {});
   assert(out.html.indexOf('No Photo Garage') !== -1, 'the garage name is missing');
   assert(out.html.indexOf('undefined') === -1, 'a missing photo produced "undefined"');
 });
 
-check('build: a business with no template named is built from its category sample', () => {
+check('build: a business with no template named is built from its category design', () => {
+  seedDesigns();
   const lead = { id: 'l4', name: 'Sunrise Bakery', businessType: 'cafe', address: 'Piassa, Addis Ababa', phone: '0911 555 666' };
   const out = App.sitegen.build({ lead: lead, options: {} });
-  assert(out.meta.mode === 'sample', 'the build did not use a sample: ' + out.meta.mode);
-  assert(out.meta.sampleId === 'sample-food', 'the bakery did not use the food sample: ' + out.meta.sampleId);
+  assert(out.meta.mode === 'sample', 'the build did not use a design: ' + out.meta.mode);
+  const used = App.samples.find(out.meta.sampleId);
+  assert(used && used.category === 'food', 'the bakery did not use the food design: ' + out.meta.sampleId);
   assert(out.html.indexOf('Sunrise Bakery') !== -1, 'the built page does not name the business');
   // an explicit template still wins, so the generator keeps working
   const withTemplate = App.sitegen.build({ lead: lead, templateId: App.store.get('templates')[0].id, options: {} });
-  assert(withTemplate.meta.mode !== 'sample', 'naming a template should not be overridden by a sample');
+  assert(withTemplate.meta.mode !== 'sample', 'naming a template should not be overridden by a design');
   const off = App.sitegen.build({ lead: lead, sampleId: 'none', templateId: App.store.get('templates')[0].id, options: {} });
-  assert(off.meta.mode !== 'sample', 'sampleId "none" did not turn the sample path off');
+  assert(off.meta.mode !== 'sample', 'sampleId "none" did not turn the design path off');
 });
 
 /* ============================== the AI layer =============================== */

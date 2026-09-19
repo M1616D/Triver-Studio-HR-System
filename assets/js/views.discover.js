@@ -725,7 +725,8 @@
     const g = App.router.q.gen;
     if (g.leadId !== leadId || !g.mode) {
       g.leadId = leadId;
-      g.mode = 'sample';
+      // with nothing uploaded yet there is no design to clone, so start on template
+      g.mode = App.samples.empty() ? 'template' : 'sample';
       g.sampleId = (App.samples.forBusiness(lead) || {}).id || '';
       g.templateId = preselectedTemplate || (App.store.get('templates')[0] || {}).id;
       g.sections = App.sitegen.sectionsFor(lead.businessType);
@@ -757,9 +758,11 @@
         '<button class="btn btn-sm ' + (isSample ? 'btn-ghost' : 'btn-lime') + '" data-action="gen.mode" data-arg="template">Template</button>' +
         '</div>' +
         (isSample
-          ? '<p class="lbl">Sample for this category</p>' +
-            '<div class="space-y-2 max-h-[210px] overflow-y-auto pr-1">' + sampleList.map(sampleRow).join('') + '</div>' +
-            '<div class="btn-row mt-2"><button class="btn btn-ghost btn-sm" data-nav="assets"><i class="fa-solid fa-folder-open"></i> Upload a sample</button></div>'
+          ? '<p class="lbl">Design for this category</p>' +
+            (sampleList.length
+              ? '<div class="space-y-2 max-h-[210px] overflow-y-auto pr-1">' + sampleList.map(sampleRow).join('') + '</div>'
+              : '<p class="text-[10px] text-textMuted leading-relaxed">No design uploaded yet. Add the page you sell with and every business of this category is built from it, word for word, with their own information.</p>') +
+            '<div class="btn-row mt-2"><button class="btn btn-ghost btn-sm" data-action="samples.library"><i class="fa-solid fa-folder-plus"></i> ' + (sampleList.length ? 'Add a design' : 'Upload a design') + '</button></div>'
           : '<p class="lbl">Design template</p>' +
             '<div class="space-y-2 max-h-[210px] overflow-y-auto pr-1">' + templates.map(t =>
               '<button class="w-full text-left glass-soft rounded-xl p-2.5 border ' + (t.id === g.templateId ? 'border-limeAccent' : 'border-transparent') + '" data-action="gen.template" data-arg="' + U.attr(t.id) + '">' +

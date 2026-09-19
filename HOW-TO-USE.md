@@ -26,6 +26,27 @@ static files.
 
 ---
 
+## 1b. The sign-in page (first thing you see)
+
+Every new device lands on the **sign-in page** written for the studio: the brand
+and the studio's own social links on the left, one panel on the right.
+
+- **Continue with Google Drive** — signs in with the Google account that owns the
+  client ID, then pulls the workspace back out of the studio's `Triverse OS`
+  folder. On a new computer this is the whole setup: one press and every client,
+  website, file and invoice is there.
+- **Continue on this device** — opens the copy kept in this browser.
+- **Open a backup file** — restores from an exported JSON backup instead.
+
+If you protected the workspace with a passphrase, the passphrase screen is the
+sign-in page for this device, and it comes straight after (or instead).
+
+The choice lasts 14 days on that browser. **Settings → This device** shows how
+the session opened, where the data is kept, and has **Show the sign-in page** and
+**Sign out of this device**. Signing out deletes nothing.
+
+---
+
 ## 2. Set your lock before you put anything real in it
 
 **Settings → Security → Protect this workspace.**
@@ -141,34 +162,46 @@ export.
 ### Catalogue and Samples
 What you sell with Ethiopian prices, and your sample pages and design templates.
 
-### The sample library (how a website gets built)
-The generator never invents a design. Each business is matched to a finished
-sample for its category and **only the information changes** — name, phone,
-address, map, socials, hours, prices, photos, reviews:
+### The design library (how a website gets built)
 
-| Sample | Used for |
-|---|---|
-| Software / product page | SaaS, software, HR systems, apps, agencies |
-| Restaurant / cafe / QR menu | restaurants, cafés, roasteries, bakeries, fast food |
-| Shop / salon / gym / clinic | shops, boutiques, cosmetics, salons, spas, gyms, clinics, pharmacies, hotels, gyms, real estate, travel, print, repair, construction |
+**The app ships no designs at all.** The library is exactly what you upload, so
+a layout you made can never be quietly rewritten. A business is matched to one
+of your uploaded designs for its category, and **only the information changes**
+— name, phone, address, map, socials, hours, prices, photos, reviews. The
+layout, spacing, colours, animations and wording style stay untouched.
 
-*Sidebar → Samples* opens the library. **Preview** shows the design as it ships.
-**Which sample for which type** prints the full business-type → sample table.
+*Sidebar → Samples* opens the library.
 
-**Uploading a new sample:** *Upload a sample* → choose any `.html` file (its own
-CSS/JS included) → **Analyse first** reads the file and reports what it found
-(headings, photos, phone, address, socials, colours, fonts, repeatable blocks,
-how many `{{placeholders}}`) → **Read & save as a sample** adds it to the
-library. From then on any business of that category is built from it, and the
-system swaps the old business's details for the new one's.
+**To upload a design:**
+
+1. Press **Choose a folder** (best) or **Choose one file**. You can also drag a
+   folder from your desktop straight onto the drop zone.
+2. A folder is read as it is: the page, its CSS, its JavaScript and its own
+   pictures are folded into one working design, and every other page in the
+   folder is kept alongside. Nothing is redrawn.
+3. The **scanner report** appears immediately — what it found in the design:
+   text blocks, photos, phone, email, map, address, social links, page blocks,
+   live fields and the colours and fonts it uses, with a confidence score.
+4. Name it, pick its category, save. From then on every business of that
+   category is built from that exact design.
+
+Each card has **Preview** (the design with an example business poured in),
+**copy** (fork it as a starting point), the scanner report, **rename** and
+**remove**. **Which design for which type** prints the full business-type →
+design table.
+
+If the library is empty, the website builder simply uses its own generated
+template instead — nothing breaks, and it tells you a design is missing.
 
 ### The assistant (Gemini) — permissions first
 Settings → AI holds the key; **Detect models** reads the live model list from
 your own key, so a retired model name can never break the AI again — if a name
 dies mid-task the app switches and retries by itself.
 
-The *Assistant* button opens the planner with the permission panel. Permissions
-work without a key, so you can set them up now:
+*Sidebar → Assistant* is the page where you hand the AI its work: type the job,
+press **Give it the job**, and it plans first, shows every step as it runs and
+writes the whole run to the history. The same panel opens from the *Assistant*
+button in the header. Permissions work without a key, so you can set them up now:
 
 | Permission | What it allows |
 |---|---|
@@ -256,20 +289,27 @@ blank field stays hidden — nothing needs switching on.
 
 ---
 
-## 10. The sample designs
+## 10. Uploading your designs
 
-The nine designs in `assets/js/samples.real.js` are your own uploads, **used exactly as you
-wrote them**. When a client comes, the generator changes only the information inside a
-design — the name, phone, address, map, socials, opening hours and copy. It never redraws,
-restyles or re-creates a layout.
+There is no design library inside the app any more — no design is shipped, and
+none can be modified behind your back. You upload each design once from the
+**Samples** page, either as one `.html` file or as a whole folder, and from then
+on it is cloned for every matching client with **only the information changed**.
+
+Where a design lives:
+
+- your uploaded designs are stored in the workspace (`samples.items`), which
+  means they travel with the app backup and to the **Google Drive** copy, so
+  signing in on another computer brings them along;
+- `sample.html` in the project root is your original reference design;
+- `.sample-preview/` is the raw uploaded library on your disk. It is **not**
+  part of the repository — that is what keeps the repo small enough to push.
+
+Useful commands while developing:
 
 ```bash
-npm run measure-samples    # what each uploaded design needs from disk
-npm run import-samples     # rebuild the designs from .sample-preview/
-npm run optimize-samples   # shrink the carried photos to web size
-npm run check-samples      # clone one design per category and verify it
+npm test                   # 44 checks incl. cloning a design for every category
+npm run build               # repack triverse-os.html (single offline file)
+npm run css                 # rebuild the compiled Tailwind utilities
+npm start                   # serve on http://localhost:8099
 ```
-
-`samples/assets/<id>/` holds each design's own pictures and fonts, copied out so the clones
-keep their real images. `.sample-preview/` — the uploaded library — stays out of the
-repository, which is why the repo is small enough to push.

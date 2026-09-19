@@ -132,343 +132,15 @@
     return out;
   }
 
-  /* ==========================================================================
-     the shared base stylesheet every sample build starts from
+  /* =========================================================================
+     the library
+     Nothing is shipped with the app. A design becomes a sample only when the
+     studio uploads it — a single page or a whole folder — and the scanner reads
+     its text, photos, map, socials and specifications so they can be swapped
+     for a new client while the design itself stays exactly as uploaded.
      ====================================================================== */
-  const BASE_CSS = [
-    '*,*::before,*::after{box-sizing:border-box}',
-    'html{scroll-behavior:smooth;-webkit-text-size-adjust:100%}',
-    'body{margin:0;font-family:"Inter","Noto Sans Ethiopic",system-ui,-apple-system,Segoe UI,Roboto,sans-serif;line-height:1.6;-webkit-font-smoothing:antialiased}',
-    'img{max-width:100%;display:block}',
-    'a{color:inherit;text-decoration:none}',
-    'h1,h2,h3{margin:0 0 .6em;line-height:1.15;letter-spacing:-.02em}',
-    '.wrap{width:min(1140px,92vw);margin-inline:auto}',
-    '.row{display:flex;justify-content:space-between;gap:1rem;padding:.55rem 0;border-bottom:1px solid currentColor;border-color:color-mix(in srgb,currentColor 12%,transparent)}',
-    '.row:last-child{border-bottom:0}',
-    '.btn{display:inline-flex;align-items:center;gap:.5rem;padding:.85rem 1.4rem;border-radius:999px;font-weight:600;font-size:.95rem;border:0;cursor:pointer;transition:transform .18s,box-shadow .18s,opacity .18s}',
-    '.btn:hover{transform:translateY(-2px)}',
-    '.btn-primary{background:var(--accent);color:var(--accent-ink)}',
-    '.btn-primary:hover{box-shadow:0 14px 34px color-mix(in srgb,var(--accent) 45%,transparent)}',
-    '.btn-ghost{border:1px solid color-mix(in srgb,currentColor 25%,transparent);background:transparent}',
-    '.reveal{opacity:0;transform:translateY(18px);animation:rise .7s cubic-bezier(.22,.9,.28,1) forwards;animation-delay:var(--d,0ms)}',
-    '@keyframes rise{to{opacity:1;transform:none}}',
-    '@media (prefers-reduced-motion:reduce){.reveal{opacity:1;transform:none;animation:none}}',
-    '.stars{color:#f4b83f;display:flex;gap:2px;font-size:.8rem}',
-    '.quote blockquote{margin:.5rem 0;font-size:.95rem}',
-    '.quote figcaption{font-size:.8rem;opacity:.7}',
-    'details{border-bottom:1px solid color-mix(in srgb,currentColor 12%,transparent);padding:.9rem 0}',
-    'summary{cursor:pointer;font-weight:600}',
-    'details p{opacity:.78;font-size:.94rem}',
-    '.foot{padding:3rem 0 2rem;font-size:.86rem;opacity:.85}',
-    '.foot-grid{display:grid;gap:2rem;grid-template-columns:repeat(auto-fit,minmax(220px,1fr))}',
-    '.mapbox{position:relative;border-radius:22px;overflow:hidden;aspect-ratio:16/8;background:rgba(125,125,125,.12)}',
-    '.mapbox iframe{width:100%;height:100%;border:0;display:block}',
-    '.socials-inline{display:flex;gap:.55rem}',
-    '.socials-inline a{width:38px;height:38px;border-radius:50%;display:grid;place-items:center;background:color-mix(in srgb,currentColor 10%,transparent);transition:.2s}',
-    '.socials-inline a:hover{background:var(--accent);color:var(--accent-ink)}'
-  ].join('');
-
-  function doc(o) {
-    return '<!doctype html>\n<html lang="en">\n<head>\n' +
-      '<meta charset="utf-8">\n<meta name="viewport" content="width=device-width,initial-scale=1">\n' +
-      '<title>{{business}} — {{tagline}}</title>\n' +
-      '<meta name="description" content="{{about}}">\n' +
-      '<meta property="og:title" content="{{business}}">\n' +
-      '<meta property="og:description" content="{{tagline}}">\n' +
-      '<link rel="preconnect" href="https://fonts.googleapis.com">\n' +
-      '<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">\n' +
-      '<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">\n' +
-      '<script type="application/ld+json">{"@context":"https://schema.org","@type":"LocalBusiness","name":{{json_name}},"telephone":"{{phone}}","address":"{{address}}","aggregateRating":{"@type":"AggregateRating","ratingValue":"{{rating}}","reviewCount":"{{reviews}}"}}</script>\n' +
-      '<style>' + BASE_CSS + (o.css || '') + '</style>\n</head>\n<body>\n' + (o.body || '') + '\n</body>\n</html>';
-  }
-
-  /* ==========================================================================
-     the built-in samples, one per category family
-     ====================================================================== */
-
-  const SAMPLE_SAAS = doc({
-    css: [
-      ':root{--accent:#7df2a8;--accent-ink:#04170d}',
-      'body{background:#070b10;color:#e8eef5}',
-      'a,b{color:inherit}',
-      'header{position:sticky;top:0;z-index:20;backdrop-filter:blur(14px);background:rgba(7,11,16,.82);border-bottom:1px solid rgba(255,255,255,.07)}',
-      '.bar{display:flex;align-items:center;justify-content:space-between;gap:1rem;padding:.95rem 0}',
-      '.logo{display:flex;align-items:center;gap:.7rem;font-weight:800;letter-spacing:-.02em}',
-      '.logo i{color:var(--accent)}',
-      'nav a{opacity:.72;margin-left:1.4rem;font-size:.92rem}',
-      'nav a:hover{opacity:1;color:var(--accent)}',
-      '.hero{padding:5.5rem 0 4rem;position:relative;overflow:hidden}',
-      '.hero::after{content:"";position:absolute;inset:-30% 40% 30% -10%;background:radial-gradient(circle at 30% 30%,rgba(125,242,168,.16),transparent 60%);pointer-events:none}',
-      '.hero h1{font-size:clamp(2.2rem,5vw,3.6rem);font-weight:800;max-width:19ch}',
-      '.hero p{max-width:56ch;opacity:.78;font-size:1.05rem}',
-      '.pill{display:inline-flex;align-items:center;gap:.5rem;font-size:.78rem;padding:.4rem .9rem;border-radius:999px;border:1px solid rgba(255,255,255,.14);opacity:.85;margin-bottom:1.2rem}',
-      '.grid-3{display:grid;gap:1.2rem;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));margin-top:2.4rem}',
-      '.card{background:linear-gradient(160deg,rgba(255,255,255,.06),rgba(255,255,255,.02));border:1px solid rgba(255,255,255,.08);border-radius:22px;padding:1.6rem;transition:.25s}',
-      '.card:hover{transform:translateY(-6px);border-color:rgba(125,242,168,.4);box-shadow:0 22px 50px rgba(0,0,0,.5)}',
-      '.card-ico{width:46px;height:46px;border-radius:14px;display:grid;place-items:center;background:rgba(125,242,168,.12);color:var(--accent);margin-bottom:1rem}',
-      '.card h3{font-size:1.05rem}',
-      '.card p{opacity:.72;font-size:.92rem;margin:0}',
-      '.price{color:var(--accent);font-weight:700;margin-top:.8rem}',
-      'section{padding:4rem 0}',
-      'h2{font-size:clamp(1.6rem,3vw,2.2rem)}',
-      '.split{display:grid;gap:2.5rem;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));align-items:center}',
-      '.panel{border:1px solid rgba(255,255,255,.09);border-radius:26px;padding:1.8rem;background:rgba(255,255,255,.03)}',
-      '.hero-cta{display:flex;gap:.8rem;flex-wrap:wrap;margin-top:1.6rem}',
-      '.statline{display:flex;gap:2.2rem;flex-wrap:wrap;margin-top:2.4rem;opacity:.85;font-size:.9rem}',
-      '.statline b{display:block;font-size:1.5rem;color:var(--accent)}'
-    ].join(''),
-    body: [
-      '<header><div class="wrap bar">',
-      '<span class="logo"><i class="fa-solid fa-cube"></i>{{business}}</span>',
-      '<nav><a href="#offer">What we do</a><a href="#pricing">Pricing</a><a href="#visit">Visit</a></nav>',
-      '</div></header>',
-
-      '<div class="wrap hero">',
-      '<span class="pill"><i class="fa-solid fa-circle-check"></i> {{category}} · {{area}}</span>',
-      '<h1>{{tagline}}</h1>',
-      '<p>{{about}}</p>',
-      '<div class="hero-cta">',
-      '<a class="btn btn-primary" href="{{phone_link}}"><i class="fa-solid fa-phone"></i> Call {{phone}}</a>',
-      '<a class="btn btn-ghost" href="{{map_link}}" target="_blank" rel="noopener"><i class="fa-solid fa-location-dot"></i> Get directions</a>',
-      '</div>',
-      '<div class="statline">',
-      '<div><b>{{rating}}<i class="fa-solid fa-star" style="font-size:.8rem"></i></b>{{reviews}} Google reviews</div>',
-      '<div><b>{{area}}</b>Where you find us</div>',
-      '<div><b class="js-open">Open now</b>Today\u2019s hours</div>',
-      '</div></div>',
-
-      '<section id="offer"><div class="wrap">',
-      '<h2>What we do</h2>',
-      '<p style="opacity:.75;max-width:60ch">{{about}}</p>',
-      '<div class="grid-3">{{service_cards}}</div>',
-      '</div></section>',
-
-      '<section id="pricing"><div class="wrap split">',
-      '<div><h2>Plans that stay simple</h2><p style="opacity:.75">Clear pricing, no hidden extras. Everything below is quoted in Ethiopian Birr.</p>',
-      '<div class="socials-inline" style="margin-top:1.4rem">{{socials}}</div></div>',
-      '<div class="panel"><div class="rows">{{price_rows}}</div>',
-      '<a class="btn btn-primary" style="margin-top:1.4rem" href="{{whatsapp}}" target="_blank" rel="noopener"><i class="fa-brands fa-whatsapp"></i> Talk to us</a></div>',
-      '</div></section>',
-
-      '<section id="visit"><div class="wrap split">',
-      '<div><h2>Find us</h2><p style="opacity:.78">',
-      '<i class="fa-solid fa-location-dot"></i> {{address}}<br>',
-      '<i class="fa-solid fa-phone"></i> {{phone}}<br>',
-      '<i class="fa-regular fa-clock"></i> {{hours_rows}}</p>',
-      '<div class="socials-inline" style="margin-top:1.2rem">{{socials}}</div></div>',
-      '<div class="mapbox">{{map_embed}}</div>',
-      '</div></section>',
-
-      '<section><div class="wrap"><h2>Frequently asked</h2>{{faq}}</div></section>',
-
-      '<footer class="foot"><div class="wrap foot-grid">',
-      '<div><span class="logo"><i class="fa-solid fa-cube"></i>{{business}}</span><p style="opacity:.7">{{address}}</p></div>',
-      '<div><p><a href="{{phone_link}}">{{phone}}</a><br><a href="{{website}}">{{website}}</a></p><div class="socials-inline">{{socials}}</div></div>',
-      '<div><p style="opacity:.7">Website by {{company}} · {{year}}</p></div>',
-      '</div></footer>'
-    ].join('')
-  });
-
-  const SAMPLE_FOOD = doc({
-    css: [
-      ':root{--accent:#c8531f;--accent-ink:#fff8f2}',
-      'body{background:#fffaf5;color:#241a12}',
-      'header{position:sticky;top:0;z-index:20;backdrop-filter:blur(14px);background:rgba(255,250,245,.9);border-bottom:1px solid rgba(36,26,18,.08)}',
-      '.bar{display:flex;align-items:center;justify-content:space-between;gap:1rem;padding:.9rem 0}',
-      '.logo{display:flex;align-items:center;gap:.6rem;font-weight:800}',
-      '.logo i{color:var(--accent)}',
-      'nav a{margin-left:1.3rem;font-size:.92rem;opacity:.8}',
-      'nav a:hover{color:var(--accent);opacity:1}',
-      '.hero{padding:3.4rem 0 2rem}',
-      '.hero-grid{display:grid;gap:2.2rem;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));align-items:center}',
-      '.hero h1{font-size:clamp(2rem,4.6vw,3.2rem);font-weight:800}',
-      '.hero p{opacity:.78;max-width:52ch}',
-      '.hero-shot{border-radius:26px;overflow:hidden;aspect-ratio:4/3;background:#f1e5da;box-shadow:0 30px 60px rgba(60,30,10,.16)}',
-      '.hero-shot img{width:100%;height:100%;object-fit:cover}',
-      '.hero-shot .ph{width:100%;height:100%;display:grid;place-items:center;font-size:3rem;color:#c9a68c}',
-      '.badge{display:inline-flex;gap:.5rem;align-items:center;font-size:.8rem;background:rgba(200,83,31,.1);color:var(--accent);padding:.4rem .9rem;border-radius:999px;font-weight:600}',
-      'section{padding:3.2rem 0}',
-      'h2{font-size:clamp(1.5rem,3vw,2.1rem)}',
-      '.menu{display:grid;gap:1rem 2.4rem;grid-template-columns:repeat(auto-fit,minmax(280px,1fr))}',
-      '.dish{display:flex;justify-content:space-between;gap:1rem;align-items:baseline;padding:.7rem 0;border-bottom:1px dashed rgba(36,26,18,.16)}',
-      '.dish h3{font-size:1rem;margin:0}',
-      '.dish p{font-size:.84rem;opacity:.65;margin:.2rem 0 0}',
-      '.dish b{color:var(--accent);white-space:nowrap}',
-      '.gal{display:grid;gap:.7rem;grid-template-columns:repeat(auto-fit,minmax(170px,1fr))}',
-      '.shot{border-radius:18px;overflow:hidden;aspect-ratio:1;background:#f1e5da}',
-      '.shot img{width:100%;height:100%;object-fit:cover;transition:.4s}',
-      '.shot:hover img{transform:scale(1.06)}',
-      '.quotes{display:grid;gap:1rem;grid-template-columns:repeat(auto-fit,minmax(260px,1fr))}',
-      '.quote{background:#fff;border:1px solid rgba(36,26,18,.08);border-radius:20px;padding:1.3rem;margin:0}',
-      '.info-grid{display:grid;gap:2rem;grid-template-columns:repeat(auto-fit,minmax(280px,1fr))}',
-      '.foot{background:#241a12;color:#f6ece3;margin-top:2rem}'
-    ].join(''),
-    body: [
-      '<header><div class="wrap bar">',
-      '<span class="logo"><i class="fa-solid fa-utensils"></i>{{business}}</span>',
-      '<nav><a href="#menu">Menu</a><a href="#gallery">Photos</a><a href="#visit">Visit us</a></nav>',
-      '</div></header>',
-
-      '<div class="wrap hero"><div class="hero-grid">',
-      '<div><span class="badge"><i class="fa-solid fa-star"></i> {{rating}} · {{reviews}} Google reviews</span>',
-      '<h1>{{tagline}}</h1><p>{{about}}</p>',
-      '<div class="hero-cta" style="display:flex;gap:.7rem;flex-wrap:wrap;margin-top:1.4rem">',
-      '<a class="btn btn-primary" href="{{whatsapp}}" target="_blank" rel="noopener"><i class="fa-brands fa-whatsapp"></i> Order on WhatsApp</a>',
-      '<a class="btn btn-ghost" href="{{phone_link}}"><i class="fa-solid fa-phone"></i> {{phone}}</a>',
-      '</div><div class="socials-inline" style="margin-top:1.2rem">{{socials}}</div></div>',
-      '<div class="hero-shot"><img src="{{hero_image}}" alt="{{business}}" onerror="this.parentNode.innerHTML=\'<div class=&quot;ph&quot;><i class=&quot;fa-solid fa-bowl-food&quot;></i></div>\'"></div>',
-      '</div></div>',
-
-      '<section id="menu"><div class="wrap">',
-      '<h2>Our menu</h2>',
-      '<div class="menu">{{service_cards_menu}}</div>',
-      '</div></section>',
-
-      '<section id="gallery"><div class="wrap"><h2>A look inside</h2><div class="gal">{{gallery}}</div></div></section>',
-
-      '<section><div class="wrap"><h2>What guests say</h2><div class="quotes">{{review_cards}}</div></div></section>',
-
-      '<section id="visit"><div class="wrap"><h2>Opening hours &amp; location</h2><div class="info-grid">',
-      '<div class="panel" style="border:1px solid rgba(36,26,18,.1);border-radius:22px;padding:1.5rem">{{hours_rows}}',
-      '<p style="margin-top:1rem;opacity:.8"><i class="fa-solid fa-location-dot"></i> {{address}}</p></div>',
-      '<div class="mapbox">{{map_embed}}</div>',
-      '</div></div></section>',
-
-      '<section><div class="wrap"><h2>Questions</h2>{{faq}}</div></section>',
-
-      '<footer class="foot"><div class="wrap foot-grid foot-grid" style="padding:2.6rem 0">',
-      '<div><span class="logo"><i class="fa-solid fa-utensils"></i>{{business}}</span><p style="opacity:.7">{{address}}</p></div>',
-      '<div><p><a href="{{phone_link}}">{{phone}}</a></p><div class="socials-inline">{{socials}}</div></div>',
-      '<div><p style="opacity:.7">{{category}} in {{area}} · website by {{company}}</p></div>',
-      '</div></footer>'
-    ].join('')
-  });
-
-  const SAMPLE_SHOP = doc({
-    css: [
-      ':root{--accent:#7a4ddb;--accent-ink:#fff}',
-      'body{background:#f7f6fb;color:#1b1a24}',
-      'header{position:sticky;top:0;z-index:20;backdrop-filter:blur(14px);background:rgba(247,246,251,.88);border-bottom:1px solid rgba(27,26,36,.07)}',
-      '.bar{display:flex;align-items:center;justify-content:space-between;gap:1rem;padding:.9rem 0}',
-      '.logo{display:flex;align-items:center;gap:.6rem;font-weight:800}',
-      '.logo i{color:var(--accent)}',
-      'nav a{margin-left:1.3rem;font-size:.92rem;opacity:.75}',
-      'nav a:hover{opacity:1;color:var(--accent)}',
-      '.hero{padding:3.6rem 0 2.6rem;text-align:center}',
-      '.hero h1{font-size:clamp(2rem,4.8vw,3.3rem);font-weight:800;margin-inline:auto;max-width:22ch}',
-      '.hero p{opacity:.75;max-width:58ch;margin-inline:auto}',
-      '.chiprow{display:flex;gap:.5rem;flex-wrap:wrap;justify-content:center;margin-top:1.5rem}',
-      '.chip{font-size:.82rem;padding:.45rem 1rem;border-radius:999px;background:#fff;border:1px solid rgba(27,26,36,.08)}',
-      'section{padding:3rem 0}',
-      'h2{font-size:clamp(1.5rem,3vw,2.1rem)}',
-      '.cards{display:grid;gap:1.1rem;grid-template-columns:repeat(auto-fit,minmax(240px,1fr))}',
-      '.card{background:#fff;border:1px solid rgba(27,26,36,.07);border-radius:22px;padding:1.5rem;transition:.25s}',
-      '.card:hover{transform:translateY(-6px);box-shadow:0 24px 48px rgba(40,20,90,.12);border-color:color-mix(in srgb,var(--accent) 40%,transparent)}',
-      '.card-ico{width:48px;height:48px;border-radius:16px;background:rgba(122,77,219,.1);color:var(--accent);display:grid;place-items:center;margin-bottom:1rem;font-size:1.05rem}',
-      '.card h3{font-size:1.05rem}.card p{opacity:.7;font-size:.92rem}',
-      '.price{color:var(--accent);font-weight:700}',
-      '.band{background:linear-gradient(135deg,var(--accent),#4b2ba8);color:#fff;border-radius:28px;padding:2.6rem}',
-      '.band .btn-primary{background:#fff;color:#4b2ba8}',
-      '.split{display:grid;gap:2rem;grid-template-columns:repeat(auto-fit,minmax(290px,1fr));align-items:start}',
-      '.panel{background:#fff;border:1px solid rgba(27,26,36,.08);border-radius:22px;padding:1.5rem}',
-      '.gal{display:grid;gap:.7rem;grid-template-columns:repeat(auto-fit,minmax(160px,1fr))}',
-      '.shot{border-radius:18px;overflow:hidden;aspect-ratio:4/3;background:#ece9f5}',
-      '.shot img{width:100%;height:100%;object-fit:cover;transition:.4s}.shot:hover img{transform:scale(1.05)}',
-      '.foot{background:#fff;border-top:1px solid rgba(27,26,36,.08);margin-top:2rem}'
-    ].join(''),
-    body: [
-      '<header><div class="wrap bar">',
-      '<span class="logo"><i class="fa-solid fa-gem"></i>{{business}}</span>',
-      '<nav><a href="#services">Services</a><a href="#photos">Photos</a><a href="#visit">Contact</a></nav>',
-      '</div></header>',
-
-      '<div class="wrap hero">',
-      '<span class="badge" style="display:inline-flex;gap:.5rem;align-items:center;font-size:.8rem;background:rgba(122,77,219,.1);color:var(--accent);padding:.4rem .9rem;border-radius:999px;font-weight:600">',
-      '<i class="fa-solid fa-star"></i> {{rating}} out of 5 · {{reviews}} reviews</span>',
-      '<h1>{{tagline}}</h1>',
-      '<p>{{about}}</p>',
-      '<div class="chiprow"><span class="chip"><i class="fa-solid fa-location-dot"></i> {{area}}</span>',
-      '<span class="chip"><i class="fa-solid fa-phone"></i> {{phone}}</span>',
-      '<span class="chip"><i class="fa-regular fa-clock"></i> Open today</span></div>',
-      '</div>',
-
-      '<section id="services"><div class="wrap"><h2>What we offer</h2><div class="cards">{{service_cards}}</div></div></section>',
-
-      '<section><div class="wrap"><div class="band">',
-      '<h2 style="color:#fff">Ready when you are</h2>',
-      '<p style="opacity:.9;max-width:54ch">Message us and we will confirm availability, prices and timing straight away.</p>',
-      '<div style="display:flex;gap:.7rem;flex-wrap:wrap;margin-top:1.4rem">',
-      '<a class="btn btn-primary" href="{{whatsapp}}" target="_blank" rel="noopener"><i class="fa-brands fa-whatsapp"></i> Message us</a>',
-      '<a class="btn btn-ghost" style="color:#fff;border-color:rgba(255,255,255,.5)" href="{{phone_link}}"><i class="fa-solid fa-phone"></i> {{phone}}</a>',
-      '</div></div></div></section>',
-
-      '<section id="photos"><div class="wrap"><h2>Inside {{business}}</h2><div class="gal">{{gallery}}</div></div></section>',
-
-      '<section><div class="wrap split">',
-      '<div class="panel"><h2 style="font-size:1.2rem">Prices</h2><div>{{price_rows}}</div></div>',
-      '<div class="panel"><h2 style="font-size:1.2rem">Opening hours</h2><div>{{hours_rows}}</div>',
-      '<p style="margin-top:1rem;opacity:.75;font-size:.9rem"><i class="fa-solid fa-location-dot"></i> {{address}}</p></div>',
-      '</div></section>',
-
-      '<section><div class="wrap"><h2>What customers say</h2><div class="cards">{{review_cards}}</div></div></section>',
-
-      '<section id="visit"><div class="wrap"><h2>Come and see us</h2><div class="mapbox">{{map_embed}}</div></div></section>',
-
-      '<section><div class="wrap"><h2>Questions</h2>{{faq}}</div></section>',
-
-      '<footer class="foot"><div class="wrap foot-grid" style="padding:2.4rem 0">',
-      '<div><span class="logo"><i class="fa-solid fa-gem"></i>{{business}}</span><p style="opacity:.7">{{category}} · {{area}}</p></div>',
-      '<div><p><a href="{{phone_link}}">{{phone}}</a></p><div class="socials-inline">{{socials}}</div></div>',
-      '<div><p style="opacity:.7">Website by {{company}} · {{year}}</p></div>',
-      '</div></footer>'
-    ].join('')
-  });
-
-  /* ==========================================================================
-     the library: which category a business belongs to, and which sample it gets
-     ====================================================================== */
-  const BUILTIN = [
-    {
-      id: 'sample-saas',
-      name: 'Software / product page',
-      category: 'saas',
-      tags: ['saas', 'software', 'hr', 'payroll', 'inventory', 'billing', 'app', 'system', 'dashboard', 'agency', 'studio', 'technology'],
-      blurb: 'Dark product-led layout for software: hero, service grid, priced plans, FAQ.',
-      html: SAMPLE_SAAS
-    },
-    {
-      id: 'sample-food',
-      name: 'Restaurant / cafe / QR menu',
-      category: 'food',
-      tags: ['restaurant', 'cafe', 'café', 'coffee', 'bakery', 'fast_food', 'fast food', 'bar', 'lounge', 'juice', 'pizza', 'burger', 'injera', 'menu', 'catering', 'food', 'hotel restaurant'],
-      blurb: 'Warm photo-led layout with a full menu list, gallery, guest reviews, hours and map.',
-      html: SAMPLE_FOOD
-    },
-    {
-      id: 'sample-shop',
-      name: 'Shop / salon / gym / clinic',
-      category: 'shop',
-      tags: ['shop', 'store', 'boutique', 'cosmetic', 'cosmetics', 'beauty', 'salon', 'barber', 'spa', 'gym', 'fitness', 'clinic', 'dental', 'pharmacy', 'hotel', 'guest house', 'lodge', 'services', 'auto', 'repair', 'construction', 'real estate', 'travel', 'photographer', 'print'],
-      blurb: 'Clean light layout for a shop, salon, gym, clinic, hotel or local service.',
-      html: SAMPLE_SHOP
-    }
-  ];
-
-  /*
-   * The studio's own designs, imported from the uploaded sample folder by
-   * scripts/import-samples.js. These are the designs the generator actually
-   * clones — markup and CSS are untouched, only the information changes.
-   */
-  const IMPORTED = (App.samplesReal || []).map(s => ({
-    id: s.id,
-    name: s.name,
-    category: s.category,
-    tags: s.tags || [],
-    blurb: s.blurb || '',
-    source: s.source || '',
-    imported: true,
-    html: s.html
-  }));
+  const BUILTIN = [];
+  const IMPORTED = [];
 
   /* which sample family each business type belongs to */
   const TYPE_CATEGORY = {
@@ -489,15 +161,18 @@
     builtin: BUILTIN,
     imported: IMPORTED,
     typeCategory: TYPE_CATEGORY,
+    guessCategory: function (a, name) { return guessCategory(a, name); },
 
     /**
-     * The studio's imported designs first (they are the real ones), then the
-     * drawn-in-code fallbacks, then anything uploaded from this browser.
+     * The library is exactly what the studio uploaded — newest first. Nothing
+     * is shipped with the app, so a design can never be silently rewritten.
      */
     list() {
-      const mine = App.store.get('samples.items', []) || [];
-      return IMPORTED.concat(BUILTIN, mine);
+      return (App.store.get('samples.items', []) || []).slice().reverse();
     },
+
+    /** true when there is nothing to clone from yet */
+    empty() { return samples.list().length === 0; },
 
     /** samples the user uploaded, newest first */
     uploaded() {
@@ -557,6 +232,9 @@
        ================================================================== */
     analyse(html) {
       const h = String(html || '');
+      /* code is not content: stylesheets and scripts are scanned separately, and
+         never mistaken for a phone number or an address sitting in the layout */
+      const visible = h.replace(/<style[\s\S]*?<\/style>/gi, ' ').replace(/<script[\s\S]*?<\/script>/gi, ' ');
       const one = re => { const m = h.match(re); return m ? m[1] : ''; };
       const all = re => { const out = []; let m; const r = new RegExp(re.source, 'gi'); while ((m = r.exec(h))) out.push(m[1]); return out; };
 
@@ -567,8 +245,8 @@
       const links = all(/<a[^>]+href=["']([^"']+)["']/i);
       // a phone can be written "+251 91 100 0111", "0911000111" or "+251911000111"
       const phones = uniq(all(/href=["']tel:([^"']+)["']/i).concat(
-        (h.match(/(?:\+?251|0)[\d\s\-().]{8,15}\d/g) || []).map(s => s.replace(/[\s\-().]+$/, '').trim())));
-      const emails = uniq(h.match(/[\w.+-]+@[\w-]+\.[\w.]{2,}/g) || []);
+        (visible.match(/(?:\+?251|0)[\d\s\-().]{8,15}\d/g) || []).map(s => s.replace(/[\s\-().]+$/, '').trim())));
+      const emails = uniq(visible.match(/[\w.+-]+@[\w-]+\.[\w.]{2,}/g) || []);
       const social = {};
       links.concat(all(/<a[^>]+href=["']([^"']+)["']/gi)).forEach(u => {
         const m = String(u).match(/(wa\.me|whatsapp\.com|t\.me|telegram|facebook\.com|instagram\.com|tiktok\.com|twitter\.com|x\.com|linkedin\.com|youtube\.com)/i);
@@ -579,7 +257,8 @@
         if (!social[key]) social[key] = u;
       });
       const mapIframe = one(/<iframe[^>]+src=["']([^"']*google[^"']*maps[^"']*)["']/i);
-      const addresses = (h.match(/\d+[^<>\n]{6,60}(?:Street|St\.|Road|Rd\.|Avenue|Ave\.|Building|Bldg|Floor|Mall|Center|Centre|Addis|Bole|Piassa|Kazanchis|Megenagna)/gi) || []).map(s => s.trim()).slice(0, 3);
+      const addresses = (visible.match(/\d+[^<>\n;{}]{6,60}(?:Street|St\.|Road|Rd\.|Avenue|Ave\.|Building|Bldg|Floor|Mall|Center|Centre|Addis|Bole|Piassa|Kazanchis|Megenagna)/gi) || [])
+        .map(s => s.trim()).filter(s => !/[{};]/.test(s)).slice(0, 3);
       const placeholders = uniq((h.match(/\{\{[a-z_0-9]+\}\}/gi) || []).map(s => s.toLowerCase()));
       const colors = uniq((h.match(/#[0-9a-fA-F]{6}\b/g) || []).concat(
         (h.match(/rgba?\([^)]+\)/g) || []).slice(0, 12))).slice(0, 18);
@@ -605,7 +284,7 @@
         title: title, description: desc, headings: headings, images: imgs, phones: phones, emails: emails,
         socials: social, mapIframe: mapIframe, addresses: addresses, placeholders: placeholders,
         colors: colors, fonts: fonts, cssVars: cssVars, sections: sections, hasJsonLd: hasJsonLd,
-        words: strip(h).split(/\s+/).filter(Boolean).length,
+        words: strip(visible).split(/\s+/).filter(Boolean).length,
         textCount: textNodes.length,
         size: h.length,
         quality: Math.min(100, score * 11),
@@ -740,7 +419,7 @@
 
       // the sample's own address text
       ((analysis && analysis.addresses) || []).forEach(a => {
-        if (!a || !lead.address) return;
+        if (!a || !lead.address || /[{};]/.test(a)) return;
         out = out.replace(new RegExp(escapeRe(a), 'g'), lead.address);
         swapped.push('address');
       });
@@ -826,7 +505,120 @@
     /* ======================================================================
        uploading a sample of your own
        ================================================================== */
-    /** store an uploaded file as a reusable sample (analysis included) */
+    /** the scanner: what a design is made of, and what can be filled later */
+    scan(html) { return samples.analyse(html); },
+
+    /**
+     * Read a folder (or a handful of loose files) into ONE self-contained page.
+     * The design is never altered: its stylesheets and scripts are folded in, its
+     * own pictures are carried as data, and nothing about the layout is touched.
+     * Everything else in the folder is kept alongside as extra pages.
+     */
+    bundle(files, opts) {
+      opts = opts || {};
+      const list = Array.prototype.slice.call(files || []).filter(Boolean);
+      if (!list.length) return Promise.reject(new Error('Nothing was chosen.'));
+      const pathOf = f => String(f.webkitRelativePath || f.name || '').replace(/\\/g, '/').toLowerCase();
+      const byPath = {};
+      list.forEach(f => { byPath[pathOf(f)] = f; byPath[pathOf(f).split('/').pop()] = f; });
+
+      const readText = f => new Promise((res, rej) => {
+        const fr = new FileReader();
+        fr.onload = () => res(String(fr.result || ''));
+        fr.onerror = () => rej(new Error('Could not read ' + f.name));
+        fr.readAsText(f);
+      });
+      const readUrl = f => new Promise((res, rej) => {
+        const fr = new FileReader();
+        fr.onload = () => res(String(fr.result || ''));
+        fr.onerror = () => rej(new Error('Could not read ' + f.name));
+        fr.readAsDataURL(f);
+      });
+
+      const pages = list.filter(f => /\.html?$/i.test(f.name));
+      if (!pages.length) return Promise.reject(new Error('That folder has no HTML page in it.'));
+      const score = f => {
+        let s = /(^|\/)index\.html?$/i.test(pathOf(f)) ? 200 : 0;
+        s += /home/i.test(f.name) ? 60 : 0;
+        s += Math.min(Number(f.size || 0), 400000) / 2000;
+        return s;
+      };
+      const main = pages.slice().sort((a, b) => score(b) - score(a))[0];
+      const mainPath = pathOf(main);
+      const baseDir = mainPath.indexOf('/') !== -1 ? mainPath.slice(0, mainPath.lastIndexOf('/') + 1) : '';
+
+      const resolve = ref => {
+        let p = String(ref || '').trim().replace(/^["']|["']$/g, '');
+        if (!p || /^(https?:|data:|mailto:|tel:|#|\/\/|javascript:)/i.test(p)) return '';
+        p = p.split('?')[0].split('#')[0];
+        const joined = (p.charAt(0) === '/' ? p.slice(1) : (baseDir + p)).toLowerCase();
+        const parts = [];
+        joined.split('/').forEach(seg => {
+          if (seg === '..') parts.pop();
+          else if (seg !== '.' && seg !== '') parts.push(seg);
+        });
+        const clean = parts.join('/');
+        return byPath[clean] ? clean : (byPath[clean.split('/').pop()] ? clean.split('/').pop() : '');
+      };
+
+      return readText(main).then(html => {
+        let out = html;
+        const carried = { styles: 0, scripts: 0, images: 0, skipped: 0, bytes: 0 };
+        const budget = { left: Number(opts.imageBudget || 3 * 1024 * 1024) };
+
+        const jobs = [];
+        const jobsFor = (re, build) => {
+          out.replace(re, (m, ref) => { const key = resolve(ref); if (key) jobs.push(build(key, m, ref)); return m; });
+        };
+        jobsFor(/<link\b[^>]*href=["']([^"']+)["'][^>]*>/gi, (key, m) => ({ kind: 'css', key: key, match: m }));
+        jobsFor(/<script\b[^>]*src=["']([^"']+)["'][^>]*>\s*<\/script>/gi, (key, m) => ({ kind: 'js', key: key, match: m }));
+        jobsFor(/<img\b[^>]*src=["']([^"']+)["']/gi, (key, m, ref) => ({ kind: 'img', key: key, ref: ref }));
+        jobsFor(/url\(\s*["']?([^"')]+)["']?\s*\)/gi, (key) => ({ kind: 'img', key: key }));
+
+        return jobs.reduce((chain, job) => chain.then(() => {
+          const f = byPath[job.key];
+          if (!f) return;
+          if (job.kind === 'img') {
+            if (Number(f.size || 0) > budget.left || Number(f.size || 0) > 900 * 1024) { carried.skipped++; return; }
+            return readUrl(f).then(url => {
+              budget.left -= Number(f.size || 0);
+              carried.images++;
+              carried.bytes += url.length;
+              // swap every reference to this exact picture, wherever it is written
+              out = out.split(job.key).join(url);
+              if (job.ref && job.ref !== job.key) out = out.split(job.ref).join(url);
+            });
+          }
+          return readText(f).then(text => {
+            if (job.kind === 'css') {
+              carried.styles++;
+              carried.bytes += text.length;
+              out = out.replace(job.match, '<style data-design="' + job.key + '">' + text + '</style>');
+            } else {
+              carried.scripts++;
+              carried.bytes += text.length;
+              out = out.replace(job.match, '<script data-design="' + job.key + '">' + text + '<\/script>');
+            }
+          });
+        }), Promise.resolve()).then(() => readText(main)).then(() => {
+          const extras = [];
+          return pages.reduce((chain, f) => chain.then(() => {
+            if (pathOf(f) === mainPath) return;
+            return readText(f).then(t => { extras.push({ path: pathOf(f), html: t, bytes: t.length }); });
+          }), Promise.resolve()).then(() => ({
+            html: out,
+            name: opts.name || String(main.name).replace(/\.html?$/i, ''),
+            source: String(mainPath || main.name) + (extras.length ? ' (+' + extras.length + ' more page' + (extras.length > 1 ? 's' : '') + ')' : ''),
+            files: list.length,
+            pages: extras,
+            carried: carried,
+            bytes: out.length + extras.reduce((n, e) => n + e.bytes, 0)
+          }));
+        });
+      });
+    },
+
+    /** store an uploaded design as a reusable sample (analysis included) */
     save(o) {
       const html = String(o.html || '');
       if (html.length < 200) return { error: 'That file is too small to be a website.' };
@@ -834,13 +626,16 @@
       const a = samples.analyse(html);
       const item = {
         id: 'up-' + Date.now().toString(36),
-        name: o.name || a.title || 'Uploaded sample',
+        name: o.name || a.title || 'Uploaded design',
         category: o.category || guessCategory(a, o.name || ''),
         tags: String(o.tags || '').split(',').map(s => s.trim()).filter(Boolean),
         blurb: o.note || (a.words + ' words · ' + a.images.length + ' photos · ' + a.sections.slice(0, 3).join(', ')),
         html: html,
         analysis: a,
-        source: 'uploaded',
+        source: o.source || 'uploaded',
+        files: Number(o.files || 0),
+        pages: (o.pages || []).map(p => ({ path: p.path, bytes: p.bytes })),
+        carried: o.carried || null,
         addedAt: U.now(),
         usedCount: 0
       };

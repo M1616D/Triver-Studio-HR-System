@@ -53,10 +53,14 @@
       body:
         '<div id="drop-zone" class="drop-zone">' +
         ui.icon('fa-cloud-arrow-up', 'text-xl') +
-        '<p class="text-[12px] font-semibold mt-2">Drop files here, or choose them</p>' +
-        '<p class="text-[10px] text-textMuted mt-1">HTML, CSS, JS, PHP, Python, images, fonts, archives, PDFs — no limit per file beyond the browser’s storage</p>' +
+        '<p class="text-[12px] font-semibold mt-2">Drop a folder, or choose files</p>' +
+        '<p class="text-[10px] text-textMuted mt-1">A whole project folder is read as it is, with every sub-folder. HTML, CSS, JS, PHP, Python, images, fonts, archives, PDFs, any language.</p>' +
         '<input id="file-input" type="file" multiple class="hidden" />' +
-        '<button class="btn btn-lime btn-sm mt-3" data-action="files.pick">Choose files</button>' +
+        '<input id="dir-input" type="file" webkitdirectory directory multiple class="hidden" />' +
+        '<div class="btn-row mt-3">' +
+        '<button class="btn btn-lime btn-sm" data-pick="folder"><i class="fa-solid fa-folder-tree"></i> Choose a folder</button>' +
+        '<button class="btn btn-ghost btn-sm" data-pick="files"><i class="fa-solid fa-file-circle-plus"></i> Choose files</button>' +
+        '</div>' +
         '<ul id="drop-list" class="text-left text-[10px] text-textMuted mt-3 space-y-1"></ul>' +
         '</div>' +
         '<div class="grid grid-cols-1 md:grid-cols-2 gap-3 mt-4">' +
@@ -77,22 +81,51 @@
         const list = root.querySelector('#drop-list');
         ui._uploadFiles = [];
         const render = () => {
-          list.innerHTML = (ui._uploadFiles || []).map(f =>
+          const rows = ui._uploadFiles || [];
+          const folders = {};
+          rows.forEach(f => { if (f.folder) folders[f.folder] = 1; });
+          list.innerHTML = (Object.keys(folders).length ? '<li class="text-accentMint"><i class="fa-solid fa-folder-tree"></i> ' +
+            rows.length + ' file(s) from ' + Object.keys(folders).length + ' folder(s) — the structure is kept</li>' : '') +
+            rows.slice(0, 60).map(f =>
             '<li class="flex items-center gap-2"><i class="fa-solid ' + iconFor({ kind: U.fileKind(f.name, f.type) }) + '"></i>' +
-            '<span class="truncate">' + U.esc(f.name) + '</span><span class="ml-auto num">' + U.bytes(f.size) + '</span></li>').join('');
+            '<span class="truncate">' + U.esc(f.folder ? f.folder + '/' + f.name : f.name) + '</span>' +
+            '<span class="ml-auto num">' + U.bytes(f.size) + '</span></li>').join('') +
+            (rows.length > 60 ? '<li class="text-textMuted">… and ' + (rows.length - 60) + ' more</li>' : '');
         };
+        const dir = root.querySelector('#dir-input');
         const take = files => {
-          ui._uploadFiles = (ui._uploadFiles || []).concat(Array.prototype.slice.call(files));
+          const rows = Array.prototype.slice.call(files || []);
+          // a folder keeps its shape: the relative path becomes part of the name
+          rows.forEach(f => { if (f.webkitRelativePath && f.webkitRelativePath.indexOf('/') !== -1) f.folder = f.webkitRelativePath.split('/').slice(0, -1).join('/'); });
+          ui._uploadFiles = (ui._uploadFiles || []).concat(rows);
           render();
         };
-        root.querySelector('[data-action="files.pick"]').addEventListener('click', () => input.click());
+        root.querySelectorAll('[data-pick="files"]').forEach(b => b.addEventListener('click', () => input.click()));
+        root.querySelectorAll('[data-pick="folder"]').forEach(b => b.addEventListener('click', () => dir.click()));
         input.addEventListener('change', () => take(input.files));
+        dir.addEventListener('change', () => take(dir.files));
         zone.addEventListener('dragover', ev => { ev.preventDefault(); zone.classList.add('is-over'); });
         zone.addEventListener('dragleave', () => zone.classList.remove('is-over'));
         zone.addEventListener('drop', ev => {
           ev.preventDefault();
           zone.classList.remove('is-over');
-          if (ev.dataTransfer && ev.dataTransfer.files) take(ev.dataTransfer.files);
+          if (!ev.dataTransfer) return;
+          const items = ev.dataTransfer.items ? Array.prototype.slice.call(ev.dataTransfer.items) : [];
+          const entries = items.map(i => (i.webkitGetAsEntry ? i.webkitGetAsEntry() : null)).filter(Boolean);
+          if (!entries.length) { take(ev.dataTransfer.files); return; }
+          const found = [];
+          const walk = entry => new Promise(res => {
+            if (!entry) return res();
+            if (entry.isFile) return entry.file(f => { f.folder = entry.fullPath ? entry.fullPath.replace(/^\//, '').split('/').slice(0, -1).join('/') : ''; found.push(f); res(); }, () => res());
+            if (!entry.isDirectory) return res();
+            const reader = entry.createReader();
+            const read = () => reader.readEntries(entries2 => {
+              if (!entries2.length) return res();
+              Promise.all(entries2.map(walk)).then(read);
+            }, () => res());
+            read();
+          });
+          Promise.all(entries.map(walk)).then(() => take(found));
         });
       }
     });
@@ -279,7 +312,7 @@
     const out = { added: [], failed: [] };
     for (let i = 0; i < list.length; i++) {
       if (bar) bar.textContent = 'Storing ' + (i + 1) + ' of ' + list.length + ' — ' + list[i].name;
-      try { out.added.push(await App.files.add(list[i], meta)); }
+      try { out.added.push(await App.files.add(list[i], Object.assign({}, meta, { folder: list[i].folder || '' }))); }
       catch (e) { out.failed.push({ name: list[i].name, error: e.message }); }
     }
     ui._uploadFiles = [];

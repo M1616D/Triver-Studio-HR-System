@@ -12,6 +12,7 @@
 
   const NAV = [
     { route: 'dashboard', icon: 'fa-table-cells-large', label: 'Dashboard', title: 'Today at a glance' },
+    { route: 'assistant', icon: 'fa-wand-magic-sparkles', label: 'Assistant', title: 'Hand work to the AI' },
     { route: 'discover', icon: 'fa-map-location-dot', label: 'Discover', title: 'Find businesses on the map' },
     { route: 'outreach', icon: 'fa-comment-dots', label: 'Outreach', title: 'Cold messages and replies' },
     { route: 'pipeline', icon: 'fa-filter', label: 'Pipeline', title: 'Deals moving forward' },
@@ -26,6 +27,7 @@
   /* the one primary button that belongs on each screen, shown in the page header */
   const PAGE_ACTIONS = {
     dashboard: { label: 'Find businesses', icon: 'fa-map-location-dot', action: 'focus.discover' },
+    assistant: { label: 'Give it a job', icon: 'fa-wand-magic-sparkles', action: 'assistant.focus' },
     discover: { label: 'Import a list', icon: 'fa-file-import', action: 'discover.import' },
     outreach: { label: 'Batch send', icon: 'fa-paper-plane', action: 'outreach.batch' },
     pipeline: { label: 'Log a reply', icon: 'fa-reply', action: 'focus.outreach' },
@@ -46,6 +48,7 @@
     const cur = App.router.current().route;
     const leads = App.store.get('leads', []);
     const counts = {
+      assistant: (App.agent ? App.agent.history().filter(t => t.status === 'blocked').length : 0),
       discover: leads.length,
       outreach: leads.filter(l => l.status === 'replied' || l.status === 'interested').length,
       pipeline: leads.filter(l => ['new', 'qualified', 'contacted', 'replied', 'interested', 'proposal'].indexOf(l.status) !== -1).length,
@@ -70,11 +73,11 @@
   }
 
   /* the studio's public profiles, one small round link each. Blank ones vanish,
-     so this fills itself in as accounts are added in Settings. */
-  function socialRow() {
+     so the strip fills itself in as accounts are added in Settings. */
+  function socialLinks() {
     const co = App.store.get('settings.company', {});
     const soc = co.socials || {};
-    const links = App.dict.socials.map(s => {
+    return App.dict.socials.map(s => {
       const raw = s.key === 'website' ? co.website : s.key === 'portfolio' ? co.portfolio : soc[s.key];
       const href = s.url(raw || '');
       if (!href) return '';
@@ -82,8 +85,24 @@
         ' class="social-chip tone tone-' + (s.tone || 'muted') + '">' +
         '<i class="fa-' + (s.brand ? 'brands' : 'solid') + ' ' + s.icon + '"></i></a>';
     }).filter(Boolean).join('');
-    if (!links) return '';
-    return '<div class="flex flex-wrap justify-center gap-1.5 mt-2.5">' + links + '</div>';
+  }
+
+  /* one calm strip along the bottom of the workspace, instead of a cluttered
+     block inside the sidebar */
+  function renderStudioBar() {
+    const bar = document.getElementById('studio-bar');
+    if (!bar) return;
+    const links = socialLinks();
+    const account = (App.auth && App.auth.account()) || '';
+    const cloud = App.cloud.status();
+    const bits = [];
+    if (cloud.lastSync) bits.push('Drive ' + U.relTime(cloud.lastSync));
+    else if (cloud.connected) bits.push('Drive connected');
+    else bits.push('Drive not connected');
+    if (account) bits.push(account);
+    bar.innerHTML =
+      (links ? '<span class="studio-bar__label">Find us</span>' + links + '<span class="w-px h-4 bg-borderMain mx-2 hidden sm:block"></span>' : '') +
+      '<span class="text-[10px] text-textMuted">' + U.esc(bits.join(' · ')) + '</span>';
   }
 
   function renderFoot() {
@@ -92,21 +111,18 @@
     const protectedNow = App.vault && App.vault.has();
     const cloud = App.cloud.status();
     foot.innerHTML =
-      '<div class="bg-bgPanel border border-borderMain rounded-xl p-4 flex flex-col items-center text-center">' +
-      '<p class="text-[11px] text-textMuted leading-relaxed mb-3">Search a business type and the whole pipeline fills itself.</p>' +
-      '<button class="w-full bg-accentMint text-bgMain font-semibold py-2 px-4 rounded-lg text-xs hover:opacity-90 hover:shadow-glow transition-all" data-action="focus.discover">' +
-      '<i class="fa-solid fa-magnifying-glass-location mr-1.5"></i>Find businesses</button>' +
+      '<div class="nav-foot__box">' +
+      '<button class="nav-foot__cta" data-action="focus.discover">' +
+      '<i class="fa-solid fa-magnifying-glass-location"></i> Find businesses</button>' +
+      '<div class="nav-foot__meta">' +
+      '<span><span class="dot-live"></span>' + (protectedNow ? 'encrypted' : 'this device') + '</span>' +
+      '<span>' + (cloud.lastSync ? 'Drive ' + U.relTime(cloud.lastSync) : 'no Drive backup') + '</span>' +
       '</div>' +
-      '<div class="text-center mt-4">' +
-      '<p class="text-[10px] text-textMuted">' + U.esc(App.store.get('settings.company.name', 'Triverse Studio')) + '</p>' +
-      socialRow() +
-      '<p class="text-[10px] text-textMuted mt-1"><span class="dot-live mr-1"></span>' +
-      (protectedNow ? 'encrypted on this device' : 'stored on this device') + '</p>' +
-      '<p class="text-[10px] ' + (cloud.lastSync ? 'text-textMuted' : 'text-textMuted') + ' mt-1">' +
-      (cloud.lastSync ? 'Drive backup ' + U.relTime(cloud.lastSync) : 'no cloud backup yet') + '</p>' +
-      (App.store.protectedByVault() ? '<button class="mt-3 w-full text-[10px] text-textMuted hover:text-white transition" data-action="vault.lock"><i class="fa-solid fa-lock mr-1"></i>Lock now</button>' :
-        '<button class="mt-3 w-full text-[10px] text-amber-300 hover:text-amber-200 transition" data-action="vault.setup"><i class="fa-solid fa-shield-halved mr-1"></i>Protect this workspace</button>') +
+      '<button class="nav-foot__link' + (protectedNow ? '' : ' is-warn') + '" data-action="' + (protectedNow ? 'vault.lock' : 'vault.setup') + '">' +
+      '<i class="fa-solid ' + (protectedNow ? 'fa-lock' : 'fa-shield-halved') + '"></i> ' +
+      (protectedNow ? 'Lock now' : 'Protect this workspace') + '</button>' +
       '</div>';
+    renderStudioBar();
   }
 
   function renderHeader() {
@@ -691,6 +707,20 @@
     });
   }
 
+  /** runs once the visitor is through the sign-in door */
+  function afterSignIn(state) {
+    if (state) { openWorkspace(state); return; }
+    if (App.locked) {
+      shellVisible(false);
+      App.vault.screen({
+        mode: 'unlock',
+        onSubmit: s => { App.auth.mark({ mode: 'passphrase' }); openWorkspace(s); }
+      });
+      return;
+    }
+    openWorkspace(App.store.state, true);
+  }
+
   function boot() {
     /* theme: whatever the visitor last picked, else the system preference */
     let theme = '';
@@ -699,13 +729,28 @@
 
     App.store.load();
 
-    if (App.locked) {
-      shellVisible(false);
-      App.vault.screen({ mode: 'unlock', onSubmit: state => openWorkspace(state) });
-      return;
-    }
-    openWorkspace(App.store.state, true);
+    if (App.auth && App.auth.begin) { shellVisible(false); App.auth.begin(afterSignIn); return; }
+    afterSignIn(null);
   }
+
+  App.action('auth.signOut', () => {
+    ui.confirm({
+      title: 'Sign out of this device?',
+      sub: 'Nothing is deleted. The workspace stays on this device and in your Drive folder; you will just see the sign-in page again.',
+      tone: 'amber',
+      confirmLabel: 'Sign out',
+      onConfirm: () => {
+        Promise.resolve()
+          .then(() => (App.vault.active() ? App.vault.flush(App.store.state) : null))
+          .catch(() => {})
+          .then(() => App.auth.signOut());
+      }
+    });
+  });
+
+  App.action('auth.signIn', () => {
+    App.auth.open(() => location.reload());
+  });
 
   App.action('vault.lock', () => {
     if (!App.vault.active()) { ui.toast('This workspace is not protected yet', 'amber'); return; }

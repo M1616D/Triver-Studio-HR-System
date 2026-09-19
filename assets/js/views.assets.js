@@ -93,61 +93,97 @@
 
   function categoryLabel(k) { return CATEGORY_LABELS[k] || U.title(String(k || 'other')); }
 
+  /** the scanner report — exactly what the design gives us to swap later */
   function analysisBox(a) {
     if (!a) return '';
-    const row = (l, v) => '<div><p class="text-[9px] text-textMuted uppercase tracking-wide">' + l + '</p><p class="text-[11px]">' + v + '</p></div>';
-    return '<div class="glass-soft rounded-xl p-3 mb-3">' +
-      '<p class="text-[11px] font-semibold mb-2">' + ui.icon('fa-circle-check', 'text-accentMint') + ' Sample read: ' + U.esc(a.title || 'untitled') + '</p>' +
-      '<div class="grid grid-cols-2 md:grid-cols-4 gap-3">' +
-      row('Can be cloned', a.quality + '% confidence') +
-      row('Text', a.words + ' words · ' + a.textCount + ' blocks') +
-      row('Photos', a.images.length + '') +
-      row('Sections', U.esc(a.sections.slice(0, 3).join(', ') || 'basic page')) +
-      row('Phone found', U.esc(a.phones[0] || 'none')) +
-      row('Map found', a.mapIframe ? 'yes' : 'no — one will be added') +
-      row('Socials found', U.esc(Object.keys(a.socials).join(', ') || 'none')) +
-      row('Live fields', a.placeholders.length ? a.placeholders.length + ' {{placeholders}}' : 'filled by detection') +
+    const row = (l, v, ok) => '<div class="scan__cell">' +
+      '<p class="scan__label">' + ui.icon(ok ? 'fa-circle-check' : 'fa-circle-minus') + ' ' + l + '</p>' +
+      '<p class="scan__value">' + v + '</p></div>';
+    const socials = Object.keys(a.socials || {});
+    return '<div class="scan">' +
+      '<div class="scan__head">' +
+      '<span class="scan__score">' + (a.quality || 0) + '%</span>' +
+      '<div><p class="scan__title">' + U.esc(a.title || 'Untitled design') + '</p>' +
+      '<p class="scan__sub">' + U.bytes(a.size || 0) + ' scanned · the design stays exactly as uploaded; only these fields change per client</p></div>' +
+      '</div>' +
+      '<div class="scan__grid">' +
+      row('Headlines & text', a.words + ' words · ' + a.textCount + ' blocks that can be rewritten', a.textCount > 4) +
+      row('Photos', a.images.length ? a.images.length + ' picture reference(s) — swapped for the client\u2019s own' : 'none found', a.images.length > 0) +
+      row('Phone', U.esc(a.phones[0] || 'none found — a call button is added'), a.phones.length > 0) +
+      row('Email', U.esc(a.emails[0] || 'none found'), a.emails.length > 0) +
+      row('Map', a.mapIframe ? 'live Google map embed — repointed at the client' : 'none found — one is added', Boolean(a.mapIframe)) +
+      row('Address', U.esc((a.addresses || [])[0] || 'none found'), (a.addresses || []).length > 0) +
+      row('Social links', U.esc(socials.join(', ') || 'none found'), socials.length > 0) +
+      row('Blocks', U.esc(a.sections.slice(0, 4).join(', ') || 'basic page'), a.sections.length > 0) +
+      row('Live fields', a.placeholders.length ? a.placeholders.length + ' {{placeholders}} ready to fill' : 'detection-based fill', true) +
+      row('Identifiers', U.esc((a.colors || []).slice(0, 3).join(' ') || '—') + ' · ' + U.esc((a.fonts || [])[0] || 'system'), true) +
       '</div></div>';
   }
 
   function sampleCard(s) {
     const types = App.dict.businessTypes.filter(t => (App.samples.typeCategory[t[0]] || 'other') === s.category)
       .map(t => t[1]).slice(0, 4).join(', ');
-    return '<div class="glass-card rounded-2xl p-4 flex flex-col justify-between">' +
+    const a = s.analysis || {};
+    const bits = [];
+    if (a.textCount) bits.push(a.textCount + ' text blocks');
+    if ((a.images || []).length) bits.push((a.images || []).length + ' photos');
+    if (a.mapIframe) bits.push('map');
+    if (Object.keys(a.socials || {}).length) bits.push('socials');
+    return '<div class="glass-card rounded-2xl p-4 flex flex-col justify-between lib-card">' +
       '<div>' +
       '<div class="flex items-start justify-between gap-2 mb-2">' +
       '<div class="min-w-0"><p class="text-[12px] font-bold truncate">' + U.esc(s.name) + '</p>' +
       '<p class="text-[9px] text-textMuted">' + U.esc(categoryLabel(s.category)) +
-      (s.imported ? ' · your design' : s.source === 'uploaded' ? ' · uploaded' : ' · studio default') + '</p></div>' +
-      (s.usedCount ? '<span class="tag">' + s.usedCount + 'x</span>' : '') + '</div>' +
+      (s.files ? ' · ' + s.files + ' file(s) in the folder' : ' · single file') + '</p></div>' +
+      (s.usedCount ? '<span class="tag">' + s.usedCount + 'x used</span>' : '<span class="tag">' + (a.quality || 0) + '%</span>') + '</div>' +
       '<p class="text-[10px] text-textMuted mb-2">' + U.esc(s.blurb || '') + '</p>' +
-      (types ? '<p class="text-[9px] text-textMuted mb-2">Used for: ' + U.esc(types) + '</p>' : '') +
-      (s.imported && s.source ? '<p class="text-[9px] text-textMuted mb-2 truncate" title="' + U.attr(s.source) + '">' +
-        ui.icon('fa-folder-open', 'text-[8px]') + ' ' + U.esc(String(s.source).split('/').slice(-2).join('/')) + '</p>' : '') +
+      (types ? '<p class="text-[9px] text-textMuted mb-2">Serves: ' + U.esc(types) + '</p>' : '') +
+      (bits.length ? '<div class="lib-card__bits">' + bits.map(b => '<span class="lib-bit">' + U.esc(b) + '</span>').join('') + '</div>' : '') +
+      (s.source ? '<p class="text-[9px] text-textMuted mt-2 truncate" title="' + U.attr(s.source) + '">' +
+        ui.icon('fa-folder-open', 'text-[8px]') + ' ' + U.esc(String(s.source)) + '</p>' : '') +
       '</div>' +
-      '<div class="btn-row mt-2">' +
+      '<div class="btn-row mt-3">' +
       '<button class="btn btn-lime btn-sm" data-action="samples.open" data-arg="' + U.attr(s.id) + '"><i class="fa-solid fa-eye"></i> Preview</button>' +
-      '<button class="btn btn-ghost btn-sm" data-action="samples.clone" data-arg="' + U.attr(s.id) + '"><i class="fa-solid fa-copy"></i> Copy into the library</button>' +
-      (s.source === 'uploaded' || s.imported
-        ? (s.imported ? '' : '<button class="btn btn-ghost btn-sm" data-action="samples.edit" data-arg="' + U.attr(s.id) + '"><i class="fa-solid fa-pen"></i></button>') +
-          (s.imported ? '' : '<button class="btn btn-ghost btn-sm" data-action="samples.del" data-arg="' + U.attr(s.id) + '"><i class="fa-solid fa-trash"></i></button>')
-        : '<span class="text-[9px] text-textMuted self-center">studio default</span>') +
+      '<button class="btn btn-ghost btn-sm" data-action="samples.clone" data-arg="' + U.attr(s.id) + '" title="Copy it as a starting point for a client"><i class="fa-solid fa-copy"></i></button>' +
+      '<button class="btn btn-ghost btn-sm" data-action="samples.scan" data-arg="' + U.attr(s.id) + '" title="See what can be filled"><i class="fa-solid fa-magnifying-glass-chart"></i></button>' +
+      '<button class="btn btn-ghost btn-sm" data-action="samples.rename" data-arg="' + U.attr(s.id) + '" title="Rename"><i class="fa-solid fa-pen"></i></button>' +
+      '<button class="btn btn-ghost btn-sm" data-action="samples.del" data-arg="' + U.attr(s.id) + '" title="Remove from the library"><i class="fa-solid fa-trash"></i></button>' +
       '</div></div>';
+  }
+
+  /** the drop zone: a whole folder, a zip of files, or one single page */
+  function uploadZone(compact) {
+    return '<div class="dropzone" id="samples-drop" data-drop="samples">' +
+      '<div class="dropzone__glow"></div>' +
+      '<span class="dropzone__icon">' + ui.icon('fa-folder-tree') + '</span>' +
+      '<p class="dropzone__title">Drop a design here</p>' +
+      '<p class="dropzone__sub">A whole folder, or just one <b>.html</b> file. The scanner reads its text, photos, map, socials and specifications — the design itself is never touched.</p>' +
+      '<div class="dropzone__actions">' +
+      '<button class="btn btn-lime" data-action="samples.pickFolder"><i class="fa-solid fa-folder-open"></i> Choose a folder</button>' +
+      '<button class="btn btn-ghost" data-action="samples.new"><i class="fa-solid fa-file-code"></i> Choose one file</button>' +
+      '</div>' +
+      (compact ? '' : '<p class="dropzone__foot">Nothing ships with the app. The library is exactly what you upload — so a design can never be silently rewritten.</p>') +
+      '</div>';
   }
 
   function sampleLibrary() {
     const list = App.samples.list();
-    const uploaded = list.filter(s => s.source === 'uploaded').length;
     const last = App.router.q.samplesLast;
+    const pending = App.router.q.samplesBundle;
     return ui.card(
-      ui.head('Sample library',
+      ui.head('Design library',
         '<div class="btn-row">' +
-        '<button class="btn btn-ghost btn-sm" data-action="samples.match"><i class="fa-solid fa-diagram-project"></i> Which sample for which type</button>' +
-        '<button class="btn btn-lime btn-sm" data-action="samples.new"><i class="fa-solid fa-arrow-up-from-bracket"></i> Upload a sample</button>' +
+        (list.length ? '<button class="btn btn-ghost btn-sm" data-action="samples.match"><i class="fa-solid fa-diagram-project"></i> Which design for which type</button>' : '') +
+        (list.length ? '<button class="btn btn-ghost btn-sm" data-action="samples.pickFolder"><i class="fa-solid fa-folder-plus"></i> Add a design</button>' : '') +
         '</div>',
-        list.length + ' designs (' + App.samples.imported.length + ' from your sample folder, ' + uploaded + ' uploaded by hand) · one per category, only the information changes.') +
+        list.length
+          ? list.length + ' design(s) uploaded by the studio · the layout, spacing and style stay exactly as you made them; only the information changes per client.'
+          : 'Upload the designs you already sell with. Each one becomes a category the generator can pour a new client into.') +
       (last ? analysisBox(last) : '') +
-      '<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">' + list.map(sampleCard).join('') + '</div>', 'mb-4');
+      (list.length
+        ? (pending ? '' : '') + '<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">' + list.map(sampleCard).join('') + '</div>' +
+          '<div class="mt-4">' + uploadZone(true) + '</div>'
+        : uploadZone(false)), 'mb-4');
   }
 
   /** the category chips, shared by every tab including the sample library */
@@ -500,97 +536,205 @@
     App.emit('state:changed', { path: 'templates' });
   });
 
-  /* ========================= sample library: upload and manage ============= */
-  App.action('samples.new', () => {
+  /* ========================= design library: upload and scan =============== */
+
+  /** every file under a dropped folder, walked depth-first */
+  function filesFromDrop(dt) {
+    const out = [];
+    const walk = entry => new Promise(res => {
+      if (!entry) return res();
+      if (entry.isFile) {
+        return entry.file(f => { f.relPath = entry.fullPath ? entry.fullPath.replace(/^\//, '') : f.name; out.push(f); res(); }, () => res());
+      }
+      if (!entry.isDirectory) return res();
+      const reader = entry.createReader();
+      const read = () => reader.readEntries(entries => {
+        if (!entries.length) return res();
+        Promise.all(entries.map(walk)).then(read);
+      }, () => res());
+      read();
+    });
+    const items = dt && dt.items ? Array.prototype.slice.call(dt.items) : [];
+    const entries = items.map(i => (i.webkitGetAsEntry ? i.webkitGetAsEntry() : null)).filter(Boolean);
+    if (!entries.length) {
+      return Promise.resolve(Array.prototype.slice.call((dt && dt.files) || []));
+    }
+    return Promise.all(entries.map(walk)).then(() => out);
+  }
+
+  /** read a pile of files into one self-contained design and scan it */
+  function ingestFiles(files, meta) {
+    const box = document.getElementById('sample-analysis');
+    const label = document.getElementById('sample-file-name');
+    if (label) label.textContent = 'reading ' + (files || []).length + ' file(s)…';
+    if (box) box.innerHTML = '<p class="text-[11px] text-textMuted"><i class="fa-solid fa-magnifying-glass-chart fa-fade text-accentMint"></i> Scanning the design…</p>';
+    return App.samples.bundle(files, meta || {}).then(out => {
+      const a = App.samples.analyse(out.html);
+      App.router.q.samplesLast = a;
+      App.router.q.samplesBundle = out;
+      if (label) label.textContent = files.length + ' file(s) read · ' + U.bytes(out.bytes || out.html.length) +
+        (out.carried ? ' · ' + out.carried.styles + ' stylesheet(s), ' + out.carried.scripts + ' script(s), ' + out.carried.images + ' picture(s) folded in' : '');
+      App.router.q.samplesUp = App.router.q.samplesUp || {};
+      App.router.q.samplesUp.text = out.html;
+      const nm = App.store.get('ui.samplesUp.name', '');
+      if (!nm) {
+        App.store.set('ui.samplesUp.name', out.name || a.title || 'Uploaded design', { silent: true });
+        const nameBox = document.getElementById('f_ui_samplesUp_name');
+        if (nameBox) nameBox.value = out.name || a.title || 'Uploaded design';
+      }
+      if (!App.store.get('ui.samplesUp.category', '') || App.store.get('ui.samplesUp.category', '') === 'shop') {
+        const guess = App.samples.guessCategory(a, out.name || '');
+        if (guess) {
+          App.store.set('ui.samplesUp.category', guess, { silent: true });
+          const sel = document.getElementById('f_ui_samplesUp_category');
+          if (sel) sel.value = guess;
+        }
+      }
+      if (box) box.innerHTML = analysisBox(a) +
+        '<p class="text-[10px] text-textMuted">Everything listed above is swapped for each new client\u2019s own details. Nothing about the layout, spacing, colours or wording style changes.</p>';
+      return out;
+    }).catch(err => {
+      if (box) box.innerHTML = '<p class="text-[11px] text-amber-300">' + U.esc(err.message) + '</p>';
+      if (label) label.textContent = 'nothing read';
+      throw err;
+    });
+  }
+
+  function uploadModal(mode) {
     const cats = Object.keys(CATEGORY_LABELS).map(k => [k, categoryLabel(k)]);
-    App.router.q.samplesUp = { text: '', name: '', category: 'shop', tags: '', note: '' };
+    App.router.q.samplesUp = { text: '' };
+    App.router.q.samplesBundle = null;
+    App.router.q.samplesLast = null;
+    App.store.set('ui.samplesUp', { name: '', category: 'shop', tags: '', note: '' }, { silent: true });
+    const folder = mode === 'folder';
     ui.modal({
-      title: 'Upload a sample website',
-      sub: 'A finished HTML page. The system reads it, reports what it found, and makes it ready to clone for a business in that category.',
+      title: folder ? 'Upload a design folder' : 'Upload a design page',
+      sub: 'The scanner reads the page and reports every field it can fill with a client\u2019s own information. The design itself is stored exactly as you made it.',
       size: 'lg',
       body:
-        '<div class="rounded-2xl border-2 border-dashed border-borderMain p-6 text-center" id="sample-drop">' +
-        '<i class="fa-solid fa-file-code text-2xl text-textMuted"></i>' +
-        '<p class="text-[12px] mt-2">Drop the .html file here</p>' +
-        '<p class="text-[10px] text-textMuted">or</p>' +
+        '<div class="dropzone dropzone--sm" id="sample-drop">' +
+        '<span class="dropzone__icon">' + ui.icon(folder ? 'fa-folder-tree' : 'fa-file-code') + '</span>' +
+        '<p class="dropzone__title">' + (folder ? 'Drop the whole site folder here' : 'Drop the .html file here') + '</p>' +
+        '<p class="dropzone__sub">' + (folder ? 'HTML, CSS, JS and its pictures are all read in — the page is stitched back into one working design.' : 'A single finished page. Add its folder instead if it has its own CSS or pictures.') + '</p>' +
         '<input type="file" id="sample-file" accept=".html,.htm,text/html" class="hidden" />' +
-        '<button class="btn btn-ghost btn-sm mt-2" data-action="samples.pick"><i class="fa-solid fa-folder-open"></i> Choose a file</button>' +
-        '<p class="text-[10px] text-textMuted mt-2" id="sample-file-name">no file chosen yet</p>' +
+        '<input type="file" id="sample-dir" webkitdirectory directory multiple class="hidden" />' +
+        '<div class="dropzone__actions">' +
+        '<button class="btn btn-lime btn-sm" data-pick="folder"><i class="fa-solid fa-folder-open"></i> Choose a folder</button>' +
+        '<button class="btn btn-ghost btn-sm" data-pick="file"><i class="fa-solid fa-file-code"></i> Choose one file</button>' +
+        '</div>' +
+        '<p class="dropzone__foot" id="sample-file-name">nothing chosen yet</p>' +
         '</div>' +
         '<div class="grid grid-cols-1 md:grid-cols-3 gap-3 mt-3">' +
-        ui.field({ label: 'Sample name', model: 'ui.samplesUp.name', value: '', placeholder: 'Restaurant — warm photo layout' }) +
+        ui.field({ label: 'Design name', model: 'ui.samplesUp.name', value: '', placeholder: 'Restaurant — warm photo layout' }) +
         ui.field({ label: 'Category', model: 'ui.samplesUp.category', value: 'shop', options: cats }) +
         ui.field({ label: 'Extra match words', model: 'ui.samplesUp.tags', value: '', placeholder: 'cafe, coffee, bakery' }) +
         '</div>' +
-        ui.field({ label: 'Note', model: 'ui.samplesUp.note', value: '', rows: 2, wrapCls: 'mt-3', placeholder: 'Approved by the client on 12 March, reusable for cafes.' }) +
+        ui.field({ label: 'Note', model: 'ui.samplesUp.note', value: '', rows: 2, wrapCls: 'mt-3', placeholder: 'Used for X, approved on 12 March.' }) +
         '<div id="sample-analysis" class="mt-3"></div>',
       footer: '<button class="btn btn-ghost" data-action="close-modal">Cancel</button>' +
-        '<button class="btn btn-ghost" data-action="samples.analyse"><i class="fa-solid fa-magnifying-glass-chart"></i> Analyse first</button>' +
-        '<button class="btn btn-lime" data-action="samples.save"><i class="fa-solid fa-floppy-disk"></i> Read &amp; save as a sample</button>',
+        '<button class="btn btn-ghost" data-action="samples.rescan"><i class="fa-solid fa-magnifying-glass-chart"></i> Scan again</button>' +
+        '<button class="btn btn-lime" data-action="samples.save"><i class="fa-solid fa-floppy-disk"></i> Save to the library</button>',
       onMount(root) {
-        const input = root.querySelector('#sample-file');
+        const one = root.querySelector('#sample-file');
+        const dir = root.querySelector('#sample-dir');
         const zone = root.querySelector('#sample-drop');
-        const label = root.querySelector('#sample-file-name');
-        const take = files => {
-          const f = files && files[0];
-          if (!f) return;
-          label.textContent = f.name + ' · ' + U.bytes(f.size);
-          App.router.q.samplesUp.file = f;
-          if (/^text\/html|html/i.test(f.type) || /\.html?$/i.test(f.name)) {
-            if (f.text) {
-              f.text().then(t => {
-                App.router.q.samplesUp.text = t;
-                App.router.q.samplesUp.name = App.router.q.samplesUp.name || String(f.name).replace(/\.html?$/i, '');
-                const box = document.getElementById('sample-analysis');
-                if (box) box.innerHTML = '<p class="text-[10px] text-accentMint">' + ui.icon('fa-circle-check') + ' File read (' + U.bytes(t.length) + '). Press Analyse to see what can be filled.</p>';
-              });
-            } else {
-              const fr = new FileReader();
-              fr.onload = () => { App.router.q.samplesUp.text = String(fr.result); };
-              fr.readAsText(f);
-            }
-          }
-        };
-        root.querySelector('[data-action="samples.pick"]').addEventListener('click', () => input.click());
-        input.addEventListener('change', () => take(input.files));
-        zone.addEventListener('dragover', ev => { ev.preventDefault(); zone.style.borderColor = '#cbfa31'; });
-        zone.addEventListener('dragleave', () => { zone.style.borderColor = ''; });
-        zone.addEventListener('drop', ev => { ev.preventDefault(); zone.style.borderColor = ''; if (ev.dataTransfer) take(ev.dataTransfer.files); });
+        one.addEventListener('change', () => { if (one.files && one.files.length) ingestFiles(Array.prototype.slice.call(one.files)); });
+        dir.addEventListener('change', () => { if (dir.files && dir.files.length) ingestFiles(Array.prototype.slice.call(dir.files)); });
+        zone.addEventListener('dragover', ev => { ev.preventDefault(); zone.classList.add('is-over'); });
+        zone.addEventListener('dragleave', () => zone.classList.remove('is-over'));
+        zone.addEventListener('drop', ev => {
+          ev.preventDefault();
+          zone.classList.remove('is-over');
+          if (!ev.dataTransfer) return;
+          filesFromDrop(ev.dataTransfer).then(files => { if (files && files.length) ingestFiles(files); });
+        });
+        root.querySelectorAll('[data-pick="file"]').forEach(b => b.addEventListener('click', () => one.click()));
+        root.querySelectorAll('[data-pick="folder"]').forEach(b => b.addEventListener('click', () => dir.click()));
       }
     });
+  }
+
+  App.action('samples.library', () => {
+    App.router.q.assets = App.router.q.assets || {};
+    App.router.q.assets.tab = 'library';
+    ui.closeModal();
+    App.router.go('sites', 'library');
   });
+
+  App.action('samples.new', () => uploadModal('file'));
+  App.action('samples.pickFolder', () => uploadModal('folder'));
 
   function sampleText() {
     const up = App.router.q.samplesUp || {};
     return String(up.text || '');
   }
 
-  App.action('samples.analyse', () => {
-    const box = document.getElementById('sample-analysis');
+  App.action('samples.rescan', () => {
     const html = sampleText();
-    if (!html) { if (box) box.innerHTML = '<p class="text-[11px] text-amber-300">Choose an HTML file first.</p>'; return; }
+    const box = document.getElementById('sample-analysis');
+    if (!html) { if (box) box.innerHTML = '<p class="text-[11px] text-amber-300">Choose a design first.</p>'; return; }
     const a = App.samples.analyse(html);
     App.router.q.samplesLast = a;
-    if (box) box.innerHTML = analysisBox(a) +
-      '<p class="text-[10px] text-textMuted">Everything found above will be replaced with each new business\u2019s own Google Maps information when this sample is used. Keep the file to watch its design; the text is rewritten per business.</p>';
+    if (box) box.innerHTML = analysisBox(a);
   });
+  App.action('samples.analyse', () => App.actions['samples.rescan']({}, null));
 
   App.action('samples.save', () => {
     const up = App.router.q.samplesUp || {};
-    if (!up.text) { ui.toast('Choose an HTML file first', 'amber'); return; }
+    if (!up.text) { ui.toast('Choose a design first', 'amber'); return; }
+    const bundle = App.router.q.samplesBundle || {};
     const res = App.samples.save({
-      name: up.name || '', category: up.category || 'shop', tags: up.tags || '', note: up.note || '', html: up.text
+      name: App.store.get('ui.samplesUp.name', ''),
+      category: App.store.get('ui.samplesUp.category', 'shop'),
+      tags: App.store.get('ui.samplesUp.tags', ''),
+      note: App.store.get('ui.samplesUp.note', ''),
+      html: up.text,
+      source: bundle.source || 'uploaded by hand',
+      files: bundle.files || 0,
+      pages: bundle.pages || [],
+      carried: bundle.carried || null
     });
     if (res.error) { ui.toast(res.error, 'red'); return; }
     App.router.q.samplesLast = res.analysis;
-    // the raw file also goes into the vault, so it is backed up with its record
-    if (up.file && App.files && App.files.add) {
-      App.files.add(up.file, { category: 'Sample website', description: 'Sample site: ' + res.sample.name }).catch(() => {});
-    }
-    App.router.q.samplesUp = { text: '', name: '', category: 'shop', tags: '', note: '' };
+    App.router.q.samplesBundle = null;
+    App.router.q.samplesUp = { text: '' };
     App.router.q.assets.tab = 'library';
     ui.closeModal();
-    ui.toast('Sample saved — ' + res.analysis.quality + '% ready to clone', 'lime');
+    ui.toast('“' + res.sample.name + '” saved — ' + res.analysis.quality + '% ready to clone', 'lime');
+    App.emit('state:changed', { path: 'samples' });
+  });
+
+  App.action('samples.scan', el => {
+    const s = App.samples.find(el.getAttribute('data-arg'));
+    if (!s) return;
+    App.router.q.samplesLast = s.analysis || App.samples.analyse(s.html);
+    App.router.q.assets.tab = 'library';
+    App.refresh();
+  });
+
+  App.action('samples.rename', el => {
+    const s = App.samples.find(el.getAttribute('data-arg'));
+    if (!s) return;
+    App.store.set('ui.samplesRename', { name: s.name, category: s.category || 'shop' }, { silent: true });
+    ui.modal({
+      title: 'Rename “' + s.name + '”',
+      size: 'sm',
+      body: ui.field({ label: 'Design name', model: 'ui.samplesRename.name', value: s.name }) +
+        ui.field({ label: 'Category', model: 'ui.samplesRename.category', value: s.category, options: Object.keys(CATEGORY_LABELS).map(k => [k, categoryLabel(k)]) }),
+      footer: '<button class="btn btn-ghost" data-action="close-modal">Cancel</button>' +
+        '<button class="btn btn-lime" data-action="samples.renameSave" data-arg="' + U.attr(s.id) + '">Save</button>'
+    });
+  });
+
+  App.action('samples.renameSave', el => {
+    const id = el.getAttribute('data-arg');
+    const name = App.store.get('ui.samplesRename.name', '');
+    const category = App.store.get('ui.samplesRename.category', '');
+    if (!name) { ui.toast('Give the design a name', 'amber'); return; }
+    App.store.patch('samples.items', id, { name: name, category: category });
+    App.store.save();
+    ui.closeModal();
+    ui.toast('Design updated', 'lime');
     App.emit('state:changed', { path: 'samples' });
   });
 
@@ -627,11 +771,17 @@
     const id = el.getAttribute('data-arg');
     const s = App.samples.find(id);
     if (!s) return;
-    ui.confirm('Delete the sample “' + s.name + '”?', () => {
-      App.samples.remove(id);
-      ui.toast('Sample deleted', 'amber');
-      App.emit('state:changed', { path: 'samples' });
-    }, 'Delete');
+    ui.confirm({
+      title: 'Remove “' + s.name + '” from the library?',
+      sub: 'The uploaded design is dropped from this workspace. A workspace backup or an earlier Drive copy still has it.',
+      tone: 'danger',
+      confirmLabel: 'Remove the design',
+      onConfirm: () => {
+        App.samples.remove(id);
+        ui.toast('Design removed from the library', 'amber');
+        App.emit('state:changed', { path: 'samples' });
+      }
+    });
   });
 
   App.action('samples.edit', el => {
@@ -681,6 +831,26 @@
       hoursWeek: [], source: 'demo'
     };
   }
+
+  /* the drop zone on the library page: a folder dropped anywhere opens the
+     uploader already reading it */
+  (function wireDropZone() {
+    ['dragover', 'drop'].forEach(evt => {
+      document.addEventListener(evt, ev => {
+        const zone = ev.target && ev.target.closest ? ev.target.closest('[data-drop="samples"]') : null;
+        if (!zone) return;
+        ev.preventDefault();
+        if (evt === 'dragover') { zone.classList.add('is-over'); return; }
+        zone.classList.remove('is-over');
+        if (!ev.dataTransfer) return;
+        filesFromDrop(ev.dataTransfer).then(files => {
+          if (!files || !files.length) return;
+          uploadModal(files.length > 1 ? 'folder' : 'file');
+          setTimeout(() => ingestFiles(files), 60);
+        });
+      });
+    });
+  })();
 
   App.action('samples.match', () => {
     const rows = App.dict.businessTypes.map(t => {

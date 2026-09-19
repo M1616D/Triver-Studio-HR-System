@@ -10,19 +10,23 @@ counted in **ETB**.
 ## Run it
 
 ```bash
-npm start          # serves the app on http://localhost:8123
+npm start          # serves the app on http://localhost:8099
 ```
 
-Open `http://localhost:8123`. Do not open `index.html` from the file system — the browser
+Open `http://localhost:8099`. Do not open `index.html` from the file system — the browser
 treats `file://` as a unique origin, which blocks cloud sync and storage.
 
 `triverse-os.html` is the same app packed into a single file for handing to someone else.
-It still needs to sit next to the `samples/` folder so the sample designs keep their photos.
+
+Every new device lands on the **sign-in page** first: sign in with Google to pull the
+workspace out of the studio's Drive folder, open this device's copy, or restore a backup
+file. Signed-in state lasts 14 days per browser and is shown in Settings → This device.
 
 ## What is in here
 
 | Area | What it does |
 |---|---|
+| Assistant | Hand the AI a job in plain language — it plans, you approve permissions, it runs and logs every step |
 | Discover | Search a business type and area, filter to the ones with no website, open the full Google record |
 | Outreach | Per-business message in Amharic or English, WhatsApp / Telegram send, reply triage |
 | Clients | Prospects, active, paused, past and rejected companies with their full history |
@@ -32,25 +36,23 @@ It still needs to sit next to the `samples/` folder so the sample designs keep t
 | Catalogue | The product list: websites, QR menus, HR systems, design work |
 | Settings | Company profile, social profiles, Google, AI, cloud, security |
 
-## The sample designs
+## The design library
 
-`assets/js/samples.real.js` is **generated** — do not hand-edit it.
+**No design is shipped with the app.** The library is exactly what the studio uploads
+from the Samples page, so a layout can never be silently rewritten by an import step.
 
-```bash
-npm run measure-samples    # what each uploaded design needs from disk
-npm run import-samples     # rebuild samples.real.js from .sample-preview/
-npm run check-samples      # clone one design per category and verify the result
-```
+Uploading accepts a whole **folder** or a single **`.html` file**, by picking or by
+dragging it onto the drop zone. A folder is read as it is: the page, its CSS, its
+JavaScript and its own pictures are folded into one self-contained design, and every other
+page in the folder is kept alongside it. The scanner then reports what the design gives us
+to fill — text blocks, photos, phone, email, map, address, social links, page blocks,
+live fields, colours and fonts — with a confidence score. When a client comes, only the
+**information** inside the design changes: name, phone, address, map, socials, opening
+hours, copy. Layout, spacing, colours and animation stay as uploaded.
 
-Each uploaded design is used **exactly as it was written**. The importer does not redesign
-or restyle anything. It copies the design's own pictures and fonts into
-`samples/assets/<id>/`, compiles the Tailwind Play CDN into inline CSS (that one script had
-to go — it is not for production and needs the network), and drops analytics scripts.
-Every tag, class, colour, image and animation stays as uploaded. When a client comes, the
-generator changes only the **information** inside the design — name, phone, address, map,
-socials, opening hours, copy.
-
-`.sample-preview/` is the uploaded reference library. It is large and **not committed**.
+`.sample-preview/` is the raw uploaded reference library on disk. It is large and **not
+committed**; the designs that matter live in the workspace (and therefore in the Drive
+backup), so another computer gets them by signing in.
 
 ## Checks
 

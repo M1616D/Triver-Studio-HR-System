@@ -1,7 +1,8 @@
-# The uploaded sample library is the studio's own reference material — 480 MB of
-# photos and video that must never be pushed. The designs themselves are curated
-# into assets/js/samples.real.js by  npm run import-samples.
+# The raw uploaded design library — hundreds of MB of photos and video that must
+# never be pushed. Designs are uploaded into the app itself now (and travel with
+# the workspace / Drive backup), so nothing here is needed to run it.
 .sample-preview/
+samples/assets/
 
 # build / preview scratch
 .preview-out/
@@ -9,6 +10,7 @@
 _preview/
 .import-tmp/
 .serve.log
+.serve2.log
 .fa.css
 _t.js
 
