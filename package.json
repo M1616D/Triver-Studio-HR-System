@@ -11,7 +11,10 @@
     "import-samples": "node scripts/import-samples.js",
     "check-samples": "node scripts/check-samples.js",
     "measure-samples": "node scripts/measure-samples.js",
-    "start": "node scripts/serve.js"
+    "start": "node scripts/serve.js",
+    "optimize-samples": "node scripts/optimize-assets.js"
   },
-  "devDependencies": {}
+  "devDependencies": {
+    "sharp": "^0.35.4"
+  }
 }
