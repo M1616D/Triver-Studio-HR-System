@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en" class="dark" data-theme="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Triverse Studio — Business System</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><rect width='24' height='24' rx='6' fill='%2391C8B9'/><path d='M6 6h12v2.6h-4.6V18h-2.8V8.6H6z' fill='%230F1015'/></svg>" />
+
+  <!-- theme is applied before first paint so there is no flash of the wrong mode -->
+  <script>
+    (function () {
+      try {
+        var saved = localStorage.getItem('triverse.os.theme');
+        if (saved !== 'light' && saved !== 'dark') {
+          saved = (window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches) ? 'light' : 'dark';
+        }
+        document.documentElement.setAttribute('data-theme', saved);
+        document.documentElement.classList.toggle('dark', saved !== 'light');
+      } catch (e) { document.documentElement.setAttribute('data-theme', 'dark'); }
+    })();
+  </script>
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <!-- Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+  <!-- Tailwind, compiled into this project (no CDN, no console warning, works offline)
+       plus the app's own design system. Rebuild the utilities after editing classes:
+       npm run css  →  npx tailwindcss@3.4.17 -c tailwind.config.js -i assets/css/tailwind.src.css -o assets/css/tailwind.css --minify -->
+  <link rel="stylesheet" href="assets/css/tailwind.css" />
+  <link rel="stylesheet" href="assets/css/app.css" />
+
+</head>
+
+<body class="h-screen w-full flex overflow-hidden font-sans antialiased text-sm bg-bgMain text-textMain">
+
+  <!-- Offline / no-network notice (hidden by default) -->
+  <div id="net-banner" class="hidden fixed top-3 left-1/2 -translate-x-1/2 z-[90] text-[11px] px-3 py-1.5 rounded-full tone tone-amber"></div>
+
+  <!-- ===================== SIDEBAR (260px, labelled) ===================== -->
+  <aside id="sidebar" class="w-[260px] flex-shrink-0 bg-bgSidebar border-r border-borderMain flex flex-col h-full z-40">
+
+    <!-- Brand -->
+    <div class="h-[88px] flex items-center gap-3 px-6 shrink-0">
+      <button data-nav="dashboard" class="flex items-center gap-3 min-w-0 group" title="Dashboard">
+        <span id="brand-mark-sm" class="brand-circle brand-circle--sm">TS</span>
+        <span class="min-w-0 text-left">
+          <span id="brand-name-sm" class="block text-[13px] font-semibold text-white truncate leading-tight">Triverse Studio</span>
+          <span id="brand-tag-sm" class="block text-[9px] text-textMuted truncate">Business system</span>
+        </span>
+      </button>
+    </div>
+
+    <!-- Signed-in owner -->
+    <div class="px-6 flex flex-col items-center mb-7 relative shrink-0">
+      <div class="w-full absolute top-1/2 left-0 h-px bg-gradient-to-r from-transparent via-borderMain to-transparent -z-0"></div>
+      <div id="user-avatar-lg" class="w-16 h-16 rounded-full border-2 border-bgSidebar p-1 bg-bgPanel mb-3 relative z-10 flex items-center justify-center text-lg font-bold text-accentMint overflow-hidden">TS</div>
+      <h3 id="owner-name" class="text-base font-semibold text-white relative z-10 text-center">Triverse Studio</h3>
+      <p id="owner-role" class="text-xs text-textMuted mt-1 relative z-10 text-center">Addis Ababa</p>
+    </div>
+
+    <!-- Navigation (filled by app.js) -->
+    <nav id="nav-main" class="flex-1 overflow-y-auto px-4 flex flex-col gap-1"></nav>
+
+    <!-- Footer: the one thing you do every morning + where the data lives -->
+    <div id="nav-foot" class="p-5 mt-auto shrink-0"></div>
+  </aside>
+
+  <!-- ===================== WORKSPACE ===================== -->
+  <main id="workspace" class="flex-1 flex flex-col min-w-0 h-full overflow-hidden">
+
+    <!-- Storage blocked? Nothing can be saved — say so, do not lose their work -->
+    <div id="storage-warning" class="hidden flex-shrink-0 px-5 lg:px-8 pt-3"></div>
+
+    <!-- Top header -->
+    <header class="h-[88px] flex-shrink-0 flex items-center justify-between gap-4 px-5 lg:px-8 bg-bgMain z-30 border-b border-transparent">
+
+      <div class="flex items-center gap-3 min-w-0 flex-1">
+        <button data-action="nav.sidebar" class="icon-btn lg:hidden" title="Menu"><i class="fa-solid fa-bars text-xs"></i></button>
+        <!-- Search: businesses, clients, projects, invoices, files -->
+        <div class="relative w-full max-w-96">
+          <i class="fa-solid fa-magnifying-glass absolute right-4 top-1/2 -translate-y-1/2 text-textMuted text-sm pointer-events-none"></i>
+          <input id="global-search" type="text" placeholder="Search everything…" autocomplete="off"
+            class="w-full bg-bgPanelLighter text-white placeholder-textMuted text-xs rounded-full py-2.5 pl-5 pr-11 border border-transparent focus:outline-none focus:ring-1 focus:ring-accentMint/60 focus:border-accentMint/40 transition-all" />
+        </div>
+      </div>
+
+      <div class="flex items-center gap-2 lg:gap-3 shrink-0">
+        <button data-action="help.open" class="icon-btn" title="How to use this system (F1)"><i class="fa-solid fa-circle-question text-sm"></i></button>
+        <button data-action="focus.discover" class="icon-btn hidden sm:inline-flex" title="Find businesses on the map"><i class="fa-solid fa-map-location-dot text-sm"></i></button>
+        <button data-action="files.upload" class="icon-btn hidden md:inline-flex" title="Add files to the vault"><i class="fa-solid fa-arrow-up-from-bracket text-sm"></i></button>
+        <button data-action="cloud.syncNow" class="icon-btn hidden xl:inline-flex" title="Back the workspace up to Google Drive"><i class="fa-brands fa-google-drive text-sm"></i></button>
+        <button data-action="data.quickBackup" class="icon-btn hidden xl:inline-flex" title="Export a backup file"><i class="fa-solid fa-shield-halved text-sm"></i></button>
+        <button data-action="ui.theme" id="theme-toggle" class="icon-btn" title="Switch between dark and light mode">
+          <i id="theme-icon" class="fa-solid fa-moon text-sm"></i>
+        </button>
+        <button data-action="vault.lock" id="lock-btn" class="icon-btn hidden" title="Lock the workspace now"><i class="fa-solid fa-lock text-sm"></i></button>
+        <button data-action="quick-add" class="icon-btn border-accentMint/40 text-accentMint hover:bg-accentMint hover:text-bgMain" title="Quick add anything">
+          <i class="fa-solid fa-plus text-sm"></i>
+        </button>
+
+        <div class="w-px h-6 bg-borderMain mx-1 hidden sm:block"></div>
+
+        <button data-nav="settings" class="flex items-center gap-3 cursor-pointer group" title="Company profile, cloud and security">
+          <div class="text-right hidden xl:block">
+            <p id="user-name" class="text-xs font-medium text-white leading-tight">Bereket Mamuye</p>
+            <p id="user-sub" class="text-[10px] text-textMuted leading-tight">workspace ready</p>
+          </div>
+          <span id="user-avatar" class="w-10 h-10 rounded-full bg-accentMint text-bgMain text-sm font-bold flex items-center justify-center border border-borderMain group-hover:shadow-glow transition overflow-hidden">TS</span>
+        </button>
+      </div>
+    </header>
+
+    <!-- Page body -->
+    <div class="flex-1 min-h-0 overflow-y-auto" id="scroll-area">
+      <div class="px-5 lg:px-8 pb-10">
+
+        <!-- Page title row -->
+        <div class="flex flex-wrap justify-between items-end gap-3 mb-5">
+          <div class="min-w-0">
+            <h1 id="page-title" class="text-2xl font-semibold text-white tracking-tight truncate">Dashboard</h1>
+            <p id="page-sub" class="text-xs text-textMuted mt-1"></p>
+          </div>
+          <div id="page-actions" class="flex items-center gap-2 flex-wrap"></div>
+        </div>
+
+        <!-- View mount -->
+        <div id="view" class="min-h-[200px]"></div>
+      </div>
+    </div>
+  </main>
+
+  <div id="modal-root"></div>
+  <div id="drawer-root"></div>
+  <div id="toast-root" class="fixed bottom-5 right-5 z-[120] flex flex-col gap-2 items-end"></div>
+
+  <script src="assets/js/core.js"></script>
+  <script src="assets/js/vault.js"></script>
+  <script src="assets/js/data.js"></script>
+  <script src="assets/js/providers.js"></script>
+  <script src="assets/js/files.js"></script>
+  <script src="assets/js/cloud.js"></script>
+  <script src="assets/js/pricing.js"></script>
+  <script src="assets/js/messages.js"></script>
+  <script src="assets/js/samples.real.js"></script>
+  <script src="assets/js/samples.js"></script>
+  <script src="assets/js/sitegen.js"></script>
+  <script src="assets/js/ai.js"></script>
+  <script src="assets/js/agent.js"></script>
+  <script src="assets/js/views.dashboard.js"></script>
+  <script src="assets/js/views.discover.js"></script>
+  <script src="assets/js/views.outreach.js"></script>
+  <script src="assets/js/views.clients.js"></script>
+  <script src="assets/js/views.projects.js"></script>
+  <script src="assets/js/views.files.js"></script>
+  <script src="assets/js/views.money.js"></script>
+  <script src="assets/js/views.assets.js"></script>
+  <script src="assets/js/views.settings.js"></script>
+  <script src="assets/js/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,5 @@
+/* Tailwind source — compiled into tailwind.css by `npm run css`.
+   The app's own design system lives in app.css and loads after this file. */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
