@@ -216,21 +216,25 @@
       }
 
       el.innerHTML =
-        '<div class="flex items-center justify-between gap-3 flex-wrap mb-3">' +
-        tabChips(s, sites, templates) +
-        '<div class="btn-row">' +
+        ui.hero([
+          { label: 'Websites online', value: String(live), tone: 'lime',
+            sub: sites.filter(x => x.kind === 'client').length + ' belong to clients' },
+          { label: 'Generated drafts', value: String(sites.filter(x => x.kind === 'draft').length), tone: 'blue',
+            sub: 'Built from a business we found' },
+          { label: 'Designs in library', value: String(App.samples.list().length + templates.length), tone: 'violet',
+            sub: App.samples.list().length + ' uploaded designs · ' + templates.length + ' templates' },
+          { label: 'Deal value', value: U.money(U.sum(sites, x => Number(x.price) || 0)), tone: 'amber',
+            sub: 'Across every property on the books' }
+        ]) +
+
+        '<div class="page-bar">' +
+        '<div class="page-bar__filters">' + tabChips(s, sites, templates) + '</div>' +
+        '<div class="page-bar__tools">' +
         '<input class="inp w-[180px]" data-model="ui.assetsSearch" data-change-action="assets.applyFilters" data-enter="assets.applyFilters" value="' + U.attr(s.search) + '" placeholder="Search sites…" />' +
         '<button class="btn btn-ghost btn-sm" data-action="sites.new"><i class="fa-solid fa-plus"></i> Register a website</button>' +
         '<button class="btn btn-ghost btn-sm" data-action="tpl.new"><i class="fa-solid fa-swatchbook"></i> New template</button>' +
         '<button class="btn btn-lime btn-sm" data-action="sites.generate"><i class="fa-solid fa-wand-magic-sparkles"></i> Generate from a lead</button>' +
         '</div></div>' +
-
-        '<div class="four-col mb-4">' +
-        ui.stat({ tag: 'Live', label: 'Websites online', value: live + '', badge: sites.filter(x => x.kind === 'client').length + ' client sites', sub: 'Our own site + client properties' }) +
-        ui.stat({ tag: 'Library', label: 'Sample pages', value: sites.filter(x => x.kind === 'sample').length + '', badge: templates.length + ' templates', tone: 'blue', sub: 'Send a sample link in the first message' }) +
-        ui.stat({ tag: 'Drafts', label: 'Generated drafts', value: sites.filter(x => x.kind === 'draft').length + '', badge: 'ready to demo', tone: 'amber', sub: 'Built by the generator from Google data' }) +
-        ui.stat({ tag: 'Pipeline', label: 'Website deal value', value: U.money(U.sum(sites, x => Number(x.price) || 0)), badge: 'all properties', sub: 'Renewals feed the retainer column' }) +
-        '</div>' +
 
         (function () {
           const items = sites.filter(x => (x.hostRenewDate && U.daysUntil(x.hostRenewDate) <= 60) || (x.domainRenewDate && U.daysUntil(x.domainRenewDate) <= 60))

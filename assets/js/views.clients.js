@@ -77,19 +77,23 @@
       const mrr = U.sum(m.clients.filter(c => c.stage === 'active'), c => App.clientMoney(c.id).retainer);
 
       el.innerHTML =
-        '<div class="four-col mb-4">' +
-        ui.stat({ tag: 'Active', label: 'Working clients', value: m.activeClients + '', badge: U.money(mrr) + ' retainers/mo', sub: 'Prospects: ' + m.prospectClients + ' · paused: ' + m.clients.filter(c => c.stage === 'paused').length }) +
-        ui.stat({ tag: 'Completed', label: 'Past clients', value: m.pastClients + '', badge: 'references', tone: 'muted', sub: 'Great for portfolio and referrals' }) +
-        ui.stat({ tag: 'Declined', label: 'Rejected companies', value: m.rejectedClients + '', badge: 'do not chase', tone: 'red', sub: 'Revisit list — 12 month cycle' }) +
-        ui.stat({ tag: 'Lifetime', label: 'Contracted value', value: U.money(U.sum(m.clients, c => App.clientMoney(c.id).contracts)), badge: U.money(m.collected) + ' collected', sub: 'Outstanding ' + U.money(m.outstanding) }) +
-        '</div>' +
+        ui.hero([
+          { label: 'Working clients', value: String(m.activeClients), tone: 'lime',
+            sub: U.money(mrr) + ' recurring each month' },
+          { label: 'Prospects', value: String(m.prospectClients), tone: 'blue',
+            sub: 'Won leads waiting to become clients' },
+          { label: 'Past clients', value: String(m.pastClients), tone: 'violet',
+            sub: 'References and repeat work' },
+          { label: 'Contracted value', value: U.money(U.sum(m.clients, c => App.clientMoney(c.id).contracts)),
+            sub: U.money(m.collected) + ' collected · ' + U.money(m.outstanding) + ' open' }
+        ]) +
 
-        '<div class="flex items-center justify-between gap-3 flex-wrap mb-3">' +
-        '<div class="flex flex-wrap gap-1.5">' +
+        '<div class="page-bar">' +
+        '<div class="page-bar__filters">' +
         ui.chip('All (' + m.clients.length + ')', s.stage === 'all', 'client.filter', 'all') +
         App.dict.clientStages.map(st => ui.chip(U.title(st) + ' (' + m.clients.filter(c => c.stage === st).length + ')', s.stage === st, 'client.filter', st)).join('') +
         '</div>' +
-        '<div class="btn-row">' +
+        '<div class="page-bar__tools">' +
         '<input class="inp w-[170px]" data-model="ui.clientSearch" data-change-action="client.applyFilters" data-enter="client.applyFilters" value="' + U.attr(s.search) + '" placeholder="Search clients…" />' +
         '<select class="inp w-[160px]" data-model="ui.clientIndustry" data-change-action="client.applyFilters">' + ['all'].concat(industries).map(i =>
           '<option value="' + U.attr(i) + '"' + (s.industry === i ? ' selected' : '') + '>' + (i === 'all' ? 'All industries' : U.esc(App.dict.typeLabel(i))) + '</option>').join('') + '</select>' +
@@ -99,7 +103,7 @@
         '<button class="btn btn-ghost btn-sm" data-action="client.export"><i class="fa-solid fa-file-csv"></i> Export</button>' +
         '</div></div>' +
 
-        '<div class="space-y-2">' + (list.length ? list.map(clientRow).join('') : ui.empty('No clients match this filter', 'Add a client manually, or convert a lead from Discover with one tap.', 'fa-users')) + '</div>';
+        '<div class="space-y-2 stagger">' + (list.length ? list.map(clientRow).join('') : ui.empty('No clients match this filter', 'Add a client manually, or convert a lead from Discover with one tap.', 'fa-users')) + '</div>';
 
       if (params) openClient(params);
     }
@@ -406,11 +410,20 @@
       const used = App.store.get('payments', []);
       const totalPotential = U.sum(catalog.filter(s => s.active), s => Number(s.price) || 0);
 
+      const activeCount = catalog.filter(s => s.active).length;
       el.innerHTML =
-        '<div class="flex items-center justify-between gap-3 flex-wrap mb-3">' +
-        '<div class="flex flex-wrap gap-1.5">' + Object.keys(groups).map(g => '<span class="chip">' + U.esc(g) + ' · ' + groups[g].length + '</span>').join('') +
-        '<span class="chip is-on">' + ui.icon('fa-tags', 'text-[9px]') + ' Basket max ' + U.money(totalPotential) + '</span></div>' +
-        '<div class="btn-row">' +
+        ui.hero([
+          { label: 'Services listed', value: String(catalog.length), tone: 'lime',
+            sub: activeCount + ' active · ' + (catalog.length - activeCount) + ' hidden' },
+          { label: 'Full basket value', value: U.money(totalPotential),
+            sub: 'Everything a client could buy from us' },
+          { label: 'Invoiced so far', value: String(used.length), tone: 'blue',
+            sub: 'Services already sold and billed' }
+        ]) +
+
+        '<div class="page-bar">' +
+        '<div class="page-bar__filters">' + Object.keys(groups).map(g => '<span class="chip">' + U.esc(g) + ' · ' + groups[g].length + '</span>').join('') + '</div>' +
+        '<div class="page-bar__tools">' +
         '<button class="btn btn-ghost btn-sm" data-action="cat.export"><i class="fa-solid fa-file-csv"></i> Export price list</button>' +
         '<button class="btn btn-lime btn-sm" data-action="cat.new"><i class="fa-solid fa-plus"></i> Add service</button>' +
         '</div></div>' +

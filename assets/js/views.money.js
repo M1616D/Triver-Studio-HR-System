@@ -52,23 +52,29 @@
       const months = U.uniq(App.store.get('payments', []).map(p => U.monthKey(p.issueDate))).filter(Boolean).sort().reverse();
       const renewals = App.store.get('payments', []).filter(p => p.renewalDate && U.daysUntil(p.renewalDate) !== null && U.daysUntil(p.renewalDate) <= 45 && U.daysUntil(p.renewalDate) >= -30);
 
-      el.innerHTML =
-        '<div class="four-col mb-4">' +
-        ui.stat({ tag: 'This month', label: 'Collected', value: U.money(m.monthCollected), badge: U.money(m.collected) + ' lifetime', sub: 'Across ' + m.payments.filter(p => p.status === 'paid').length + ' settled invoices' }) +
-        ui.stat({ tag: 'Receivable', label: 'Outstanding', value: U.money(m.outstanding), badge: 'open', tone: 'blue', sub: 'Pending + partial balances' }) +
-        ui.stat({ tag: 'Risk', label: 'Overdue', value: U.money(m.overdue), badge: m.payments.filter(p => effectiveStatus(p) === 'overdue').length + ' invoices', tone: m.overdue ? 'red' : 'lime', sub: 'Send a reminder with one tap' }) +
-        ui.stat({ tag: 'Recurring', label: 'Renewals next 45 days', value: U.money(U.sum(renewals, p => Number(p.amount) || 0)), badge: renewals.length + ' items', tone: 'amber', sub: 'Retainers, hosting and ads packages' }) +
-        '</div>' +
+      const overdueCount = m.payments.filter(p => effectiveStatus(p) === 'overdue').length;
 
-        ui.card(ui.head('Collections trend', ui.badge('last 8 months', 'muted'), 'Paid invoices by month') +
+      el.innerHTML =
+        ui.hero([
+          { label: 'Collected this month', value: U.money(m.monthCollected), tone: m.monthCollected ? 'lime' : 'amber',
+            sub: U.money(m.collected) + ' collected in total' },
+          { label: 'Outstanding', value: U.money(m.outstanding), tone: m.outstanding ? 'blue' : 'lime',
+            sub: 'Pending and part-paid balances' },
+          { label: 'Overdue', value: U.money(m.overdue), tone: m.overdue ? 'red' : 'lime',
+            sub: overdueCount ? overdueCount + ' invoice' + (overdueCount === 1 ? '' : 's') + ' to chase' : 'nothing past due' },
+          { label: 'Renewals · 45 days', value: U.money(U.sum(renewals, p => Number(p.amount) || 0)), tone: 'amber',
+            sub: renewals.length + ' retainer' + (renewals.length === 1 ? '' : 's') + ' and hosting packages' }
+        ]) +
+
+        ui.card(ui.head('Collections — last 8 months', ui.badge('lifetime ' + U.money(m.collected), 'lime')) +
           ui.bars(m.revenueByMonth, { highlight: m.revenueByMonth[m.revenueByMonth.length - 1].key }), 'mb-4') +
 
-        '<div class="flex items-center justify-between gap-3 flex-wrap mb-3">' +
-        '<div class="flex flex-wrap gap-1.5">' +
+        '<div class="page-bar">' +
+        '<div class="page-bar__filters">' +
         ui.chip('All (' + m.payments.length + ')', s.status === 'all', 'pay.filter', 'all') +
         App.dict.paymentStatuses.map(st => ui.chip(U.title(st) + ' (' + m.payments.filter(p => effectiveStatus(p) === st).length + ')', s.status === st, 'pay.filter', st)).join('') +
         '</div>' +
-        '<div class="btn-row">' +
+        '<div class="page-bar__tools">' +
         '<input class="inp w-[160px]" data-model="ui.paySearch" data-change-action="pay.applyFilters" data-enter="pay.applyFilters" value="' + U.attr(s.search) + '" placeholder="Invoice / project…" />' +
         '<select class="inp w-[170px]" data-model="ui.payClient" data-change-action="pay.applyFilters"><option value="all">All clients</option>' +
         App.store.get('clients', []).map(c => '<option value="' + U.attr(c.id) + '"' + (s.clientId === c.id ? ' selected' : '') + '>' + U.esc(c.name) + '</option>').join('') + '</select>' +

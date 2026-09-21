@@ -235,12 +235,20 @@
       const dueCount = all.reduce((a, p) => a + dueFor(p).length, 0);
 
       el.innerHTML =
-        '<div class="flex items-center justify-between gap-3 flex-wrap mb-3">' +
-        '<div class="flex flex-wrap gap-1.5">' +
+        ui.hero([
+          { label: 'Hosted & online', value: String(live), tone: 'lime', sub: 'Live sites we maintain' },
+          { label: 'In development', value: String(building), tone: 'blue', sub: 'New sites, apps and systems' },
+          { label: 'Ongoing care', value: String(care), tone: 'amber', sub: 'Retainers that pay monthly' },
+          { label: 'Portfolio value', value: U.money(value), tone: 'violet',
+            sub: dueCount ? dueCount + ' payment' + (dueCount === 1 ? '' : 's') + ' still open' : 'every payment settled' }
+        ]) +
+
+        '<div class="page-bar">' +
+        '<div class="page-bar__filters">' +
         ui.chip('Everything (' + all.length + ')', s.tab === 'all', 'projects.tab', 'all', 'fa-layer-group') +
         PHASES.map(p => ui.chip(p[1] + ' (' + all.filter(x => x.phase === p[0]).length + ')', s.tab === p[0], 'projects.tab', p[0], p[2])).join('') +
         '</div>' +
-        '<div class="btn-row">' +
+        '<div class="page-bar__tools">' +
         '<select class="inp" data-model="ui.projClientFilter" data-change-action="projects.filterClient">' +
         '<option value="">All clients</option>' +
         clients.map(c => '<option value="' + U.attr(c.id) + '"' + (s.client === c.id ? ' selected' : '') + '>' + U.esc(c.name) + '</option>').join('') +
@@ -249,17 +257,10 @@
         '<button class="btn btn-lime btn-sm" data-action="projects.new"><i class="fa-solid fa-plus"></i> New project</button>' +
         '</div></div>' +
 
-        '<div class="four-col mb-4">' +
-        ui.stat({ tag: 'Live', label: 'Hosted & online', value: String(live), badge: 'being maintained', sub: 'Renewals are tracked per project' }) +
-        ui.stat({ tag: 'Build', label: 'In development', value: String(building), tone: 'blue', badge: 'coming next', sub: 'New websites, apps and systems' }) +
-        ui.stat({ tag: 'Care', label: 'Ongoing clients', value: String(care), tone: 'amber', badge: 'retainers', sub: 'The work that pays every month' }) +
-        ui.stat({ tag: 'Value', label: 'Portfolio value', value: U.money(value), tone: 'violet', badge: dueCount ? dueCount + ' payment' + (dueCount === 1 ? '' : 's') + ' due' : 'all settled', sub: 'Across every project still active' }) +
-        '</div>' +
-
         (dueCount
-          ? '<div class="glass-soft rounded-xl p-3 mb-3 text-[11px] flex items-center gap-2.5 tone tone-amber border">' +
+          ? '<div class="glass-soft rounded-xl p-3 mb-4 text-[11px] flex items-center gap-2.5 tone tone-amber border">' +
             ui.icon('fa-hourglass-half', '') +
-            '<span>' + dueCount + ' project payment' + (dueCount === 1 ? ' is' : 's are') + ' still open. Open the project or the Money screen to collect them.</span>' +
+            '<span>' + dueCount + ' project payment' + (dueCount === 1 ? ' is' : 's are') + ' still open.</span>' +
             '<button class="btn btn-ghost btn-sm ml-auto" data-nav="payments">Open Money</button></div>'
           : '') +
 

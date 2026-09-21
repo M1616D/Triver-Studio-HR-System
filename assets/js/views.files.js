@@ -14,7 +14,7 @@
   const ui = App.ui;
 
   function q() {
-    App.router.q.files = App.router.q.files || { category: 'all', search: '', project: '' };
+    App.router.q.files = App.router.q.files || { category: 'all', search: '', project: '', folder: '' };
     return App.router.q.files;
   }
 
@@ -140,8 +140,10 @@
     render(el, params) {
       const s = q();
       const stats = App.files.stats();
-      const rows = U.sortBy(App.files.search(s.search, { category: s.category, projectId: s.project }), d => d.uploadedAt || '', 'desc');
+      const here = App.files.browse(s.folder);
+      const rows = U.sortBy(App.files.search(s.search, { category: s.category, projectId: s.project, folder: s.folder }), d => d.uploadedAt || '', 'desc');
       const backend = App.files.backend();
+      const crumbs = s.folder ? s.folder.split('/') : [];
 
       el.innerHTML =
         '<div class="flex items-center justify-between gap-3 flex-wrap mb-3">' +
@@ -152,15 +154,51 @@
         '</div>' +
         '<div class="btn-row">' +
         '<input class="inp w-[190px]" data-model="ui.filesSearch" data-change-action="files.applyFilters" data-enter="files.applyFilters" value="' + U.attr(s.search) + '" placeholder="Search name, tag, content…" />' +
+        '<button class="btn btn-ghost btn-sm" data-action="files.newFolder"><i class="fa-solid fa-folder-plus"></i> New folder</button>' +
         '<button class="btn btn-lime btn-sm" data-action="files.upload"><i class="fa-solid fa-arrow-up-from-bracket"></i> Add files</button>' +
         '</div></div>' +
 
-        '<div class="four-col mb-4">' +
-        ui.stat({ tag: 'Vault', label: 'Files stored', value: String(stats.count), badge: U.bytes(stats.bytes), sub: backend === 'indexedDB' ? 'On this device, in the browser database' : 'Device storage is limited — connect Drive' }) +
-        ui.stat({ tag: 'Linked', label: 'Files linked to projects', value: String(stats.links), tone: 'blue', badge: stats.count ? U.pct(stats.links, stats.count) + '%' : '0%', sub: 'The rest are general studio files' }) +
-        ui.stat({ tag: 'Latest', label: 'Most recent upload', value: stats.newest ? U.relTime(stats.newest.uploadedAt) : '—', tone: 'amber', badge: stats.newest ? U.bytes(stats.newest.size) : '', sub: stats.newest ? stats.newest.name : 'Nothing stored yet' }) +
-        ui.stat({ tag: 'Cloud', label: 'Copies in Drive', value: String(App.files.all().filter(d => d.cloud && d.cloud.driveId).length), tone: 'violet', badge: App.cloud.isConnected() ? 'Drive connected' : 'Drive not connected', sub: App.cloud.status().http ? 'Backs the vault up off this device' : 'Needs the app opened over http://localhost' }) +
+        /* the folder strip: where you are, and what is inside */
+        '<div class="folders glass-soft rounded-xl mb-4">' +
+        '<div class="folders__crumbs">' +
+        '<button class="folders__crumb' + (s.folder ? '' : ' is-on') + '" data-action="files.folder" data-arg="">' +
+        '<i class="fa-solid fa-hard-drive"></i> Vault root</button>' +
+        crumbs.map((c, i) => {
+          const path = crumbs.slice(0, i + 1).join('/');
+          return '<i class="fa-solid fa-chevron-right folders__sep"></i>' +
+            '<button class="folders__crumb' + (i === crumbs.length - 1 ? ' is-on' : '') + '" data-action="files.folder" data-arg="' + U.attr(path) + '">' + U.esc(c) + '</button>';
+        }).join('') +
+        (s.folder ? '<span class="folders__tools"><button class="btn btn-ghost btn-sm" data-action="files.renameFolder" data-arg="' + U.attr(s.folder) + '"><i class="fa-solid fa-pen"></i> Rename</button>' +
+          '<button class="btn btn-ghost btn-sm" data-action="files.delFolder" data-arg="' + U.attr(s.folder) + '"><i class="fa-solid fa-trash"></i></button></span>' : '') +
         '</div>' +
+        ((here.folders.length || s.folder === '')
+          ? '<div class="folders__grid">' +
+            here.folders.map(f =>
+              '<button class="folder-tile" data-action="files.folder" data-arg="' + U.attr(f.path) + '">' +
+              '<span class="folder-tile__icon"><i class="fa-solid fa-folder"></i></span>' +
+              '<span class="folder-tile__name">' + U.esc(f.path.split('/').pop()) + '</span>' +
+              '<span class="folder-tile__meta">' + f.count + ' item' + (f.count === 1 ? '' : 's') + '</span>' +
+              '</button>').join('') +
+            (s.folder === '' ? '<button class="folder-tile folder-tile--new" data-action="files.newFolder">' +
+              '<span class="folder-tile__icon"><i class="fa-solid fa-plus"></i></span>' +
+              '<span class="folder-tile__name">New folder</span>' +
+              '<span class="folder-tile__meta">group files your way</span></button>' : '') +
+            '</div>'
+          : '') +
+        '</div>' +
+
+        ui.hero([
+          { label: 'Files stored', value: String(stats.count), sub: U.bytes(stats.bytes) + (backend === 'indexedDB' ? ' · on this device' : ' · storage is limited'),
+            cta: 'Add files', icon: 'fa-arrow-up-from-bracket', action: 'files.upload' },
+          { label: 'Linked to a project', value: String(stats.links), tone: 'blue',
+            sub: stats.count ? U.pct(stats.links, stats.count) + '% of the vault' : 'nothing linked yet' },
+          { label: 'In Drive', value: String(App.files.all().filter(d => d.cloud && d.cloud.driveId).length), tone: 'violet',
+            sub: App.cloud.isConnected() ? 'backed up off this device' : 'Drive is not connected',
+            cta: 'Cloud settings', icon: 'fa-cloud', nav: 'settings' },
+          { label: 'Latest', value: stats.newest ? U.relTime(stats.newest.uploadedAt) : '—', tone: 'amber',
+            sub: stats.newest ? U.esc(stats.newest.name) : 'nothing stored yet' }
+        ]) +
+        '<div class="mt-4"></div>' +
 
         (App.files.all().some(d => d.missing)
           ? '<div class="glass-soft rounded-xl p-3 mb-3 text-[11px] flex items-start gap-2.5 tone tone-amber border">' +
@@ -196,14 +234,93 @@
               })),
               { empty: 'No files yet', emptySub: '', emptyIcon: 'fa-box-archive' }
             ) + '</div>'
-          : ui.empty(stats.count ? 'Nothing matches that filter' : 'The vault is empty',
-            stats.count ? 'Clear the search or pick another category.' : 'Add the files you already own — website builds, logos, contracts, invoices. Each one keeps its full record here.',
-            'fa-box-archive',
-            '<button class="btn btn-lime btn-sm" data-action="files.upload"><i class="fa-solid fa-arrow-up-from-bracket"></i> Add your first files</button>'));
+          : (here.folders.length
+            ? ''
+            : ui.empty(stats.count ? 'Nothing matches that filter' : (s.folder ? 'This folder is empty' : 'The vault is empty'),
+              stats.count ? 'Clear the search or pick another category.' : 'Add the files you already own — website builds, logos, contracts, invoices. Each one keeps its full record here.',
+              'fa-box-archive',
+              '<button class="btn btn-lime btn-sm" data-action="files.upload"><i class="fa-solid fa-arrow-up-from-bracket"></i> Add your first files</button>')));
 
       if (params) openDetail(params);
     }
   };
+
+  /* ------------------------------ folder actions --------------------------- */
+  App.action('files.folder', el => {
+    q().folder = el.getAttribute('data-arg') || '';
+    q().search = '';
+    App.store.set('ui.filesSearch', '', { silent: true });
+    App.emit('state:changed', { path: 'files' });
+  });
+
+  App.action('files.newFolder', () => {
+    const s = q();
+    App.store.set('ui.newFolder', { name: '' }, { silent: true });
+    ui.modal({
+      title: 'New folder',
+      sub: s.folder ? 'Created inside “' + s.folder + '”' : 'A folder groups files in the vault. Uploads can keep their own folder shape too.',
+      size: 'sm',
+      body: ui.field({ label: 'Folder name', model: 'ui.newFolder.name', value: '', placeholder: 'Client sites' }),
+      footer: '<button class="btn btn-ghost" data-action="close-modal">Cancel</button>' +
+        '<button class="btn btn-lime" data-action="files.newFolderGo">Create</button>'
+    });
+  });
+
+  App.action('files.newFolderGo', () => {
+    const base = q().folder;
+    const name = App.store.get('ui.newFolder.name', '').trim();
+    if (!name) { ui.toast('Give the folder a name', 'amber'); return; }
+    const res = App.files.createFolder(base ? base + '/' + name : name);
+    if (res.error) { ui.toast(res.error, 'red'); return; }
+    ui.closeModal();
+    ui.toast('Folder created', 'lime');
+    App.emit('state:changed', { path: 'files' });
+  });
+
+  App.action('files.renameFolder', el => {
+    const path = el.getAttribute('data-arg');
+    App.store.set('ui.renFolder', { name: path.split('/').pop() }, { silent: true });
+    ui.modal({
+      title: 'Rename folder',
+      sub: 'Every file inside follows to the new name.',
+      size: 'sm',
+      body: ui.field({ label: 'Folder name', model: 'ui.renFolder.name', value: path.split('/').pop() }),
+      footer: '<button class="btn btn-ghost" data-action="close-modal">Cancel</button>' +
+        '<button class="btn btn-lime" data-action="files.renameFolderGo" data-arg="' + U.attr(path) + '">Rename</button>'
+    });
+  });
+
+  App.action('files.renameFolderGo', el => {
+    const path = el.getAttribute('data-arg');
+    const name = App.store.get('ui.renFolder.name', '').trim();
+    if (!name) { ui.toast('Give the folder a name', 'amber'); return; }
+    const parts = path.split('/'); parts.pop();
+    const res = App.files.renameFolder(path, parts.concat(name).join('/'));
+    if (res.error) { ui.toast(res.error, 'red'); return; }
+    q().folder = res.path;
+    ui.closeModal();
+    ui.toast(res.moved + ' file(s) moved to “' + res.path + '”', 'lime');
+    App.emit('state:changed', { path: 'files' });
+  });
+
+  App.action('files.delFolder', el => {
+    const path = el.getAttribute('data-arg');
+    const count = App.files.browse(path);
+    const total = count.files.length + count.folders.reduce((n, f) => n + f.count, 0);
+    ui.confirm({
+      title: 'Delete the folder “' + path.split('/').pop() + '”?',
+      sub: 'The folder and everything inside it — about ' + total + ' file(s) — is removed from the vault. Files already copied to Drive keep their copies there.',
+      tone: 'danger',
+      confirmLabel: 'Delete the folder',
+      onConfirm: () => {
+        App.files.deleteFolder(path).then(r => {
+          q().folder = '';
+          ui.toast('Folder deleted · ' + r.removed + ' file(s) removed', 'amber');
+          App.emit('state:changed', { path: 'files' });
+        }).catch(e => ui.toast(e.message, 'red'));
+      }
+    });
+  });
 
   /* ------------------------------- detail view ----------------------------- */
   async function openDetail(id) {

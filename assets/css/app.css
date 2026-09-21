@@ -369,7 +369,10 @@ tr.hl td { border-color: color-mix(in srgb, rgb(var(--accent)) 45%, transparent)
 .nav-link.is-active { background: rgb(var(--accent)); color: rgb(var(--bg-main)); box-shadow: 0 8px 22px -12px rgba(145, 200, 185, .9); }
 
 /* --------------------------------- overlays ------------------------------- */
-.overlay { position: fixed; inset: 0; background: rgba(6, 7, 10, .66); backdrop-filter: blur(7px); z-index: 100; animation: fade .18s var(--ease); }
+/* every floating layer has one agreed height: a modal opens over a drawer,
+   a toast answers over both, and the sign-in/lock screens sit above everything
+   except toasts. No popup can ever end up underneath another by accident. */
+.overlay { position: fixed; inset: 0; background: rgba(6, 7, 10, .66); backdrop-filter: blur(7px); z-index: 1000; animation: fade .18s var(--ease); }
 :root[data-theme="light"] .overlay { background: rgba(15, 23, 42, .30); }
 .modal-panel { animation: pop .26s var(--ease); }
 .drawer-panel { animation: slide .3s var(--ease); }
@@ -576,7 +579,7 @@ select + .btn-row { margin-top: .7rem; }
    Sign-in / lock screen
    ========================================================================== */
 .lock-screen {
-  position: fixed; inset: 0; z-index: 200; display: flex;
+  position: fixed; inset: 0; z-index: 1400; display: flex;
   align-items: center; justify-content: center; padding: 20px;
   background: rgb(var(--bg-main));
 }
@@ -699,14 +702,222 @@ tr:hover .file-glyph { transform: scale(1.08) rotate(-4deg); }
 /* ============================================================================
    Social chips — the studio's public profiles, as small round links
    ========================================================================== */
+/* One quiet colour for every network: a link is a link. No per-brand colours,
+   no gradient tiles — one consistent, monochrome chip. */
 .social-chip {
   width: 26px; height: 26px; border-radius: 999px; flex: 0 0 auto;
   display: inline-flex; align-items: center; justify-content: center;
   font-size: 11px; text-decoration: none;
-  transition: transform .32s var(--ease), box-shadow .32s var(--ease), background .32s var(--ease);
+  color: rgb(var(--muted));
+  background: rgb(var(--bg-panel-2));
+  border: 1px solid rgb(var(--line));
+  transition: transform .32s var(--ease), color .32s var(--ease), border-color .32s var(--ease);
 }
-.social-chip:hover { transform: translateY(-3px) scale(1.12); box-shadow: var(--glow); }
+.social-chip:hover {
+  transform: translateY(-3px);
+  color: rgb(var(--ink));
+  border-color: color-mix(in srgb, rgb(var(--accent)) 55%, transparent);
+}
 .social-chip:active { transform: scale(.94); }
+
+/* ============================================================================
+   Discover — the search is the page
+   ========================================================================== */
+.disc-hero {
+  padding: 16px clamp(16px, 2.5vw, 24px) 14px; border-radius: 20px; margin-bottom: 14px;
+  background:
+    radial-gradient(120% 160% at 0% 0%, color-mix(in srgb, rgb(var(--accent)) 9%, transparent) 0%, transparent 55%),
+    rgb(var(--bg-panel));
+  border: 1px solid rgb(var(--line));
+  animation: rise .4s var(--ease) both;
+}
+.disc-hero__bar {
+  display: flex; align-items: center; gap: 10px;
+  background: rgb(var(--bg-panel-2)); border: 1px solid rgb(var(--line));
+  border-radius: 999px; padding: 6px 6px 6px 14px;
+  transition: border-color .28s var(--ease), box-shadow .28s var(--ease);
+}
+.disc-hero__bar:focus-within { border-color: color-mix(in srgb, rgb(var(--accent)) 55%, transparent); box-shadow: var(--glow); }
+.disc-hero__glass {
+  width: 30px; height: 30px; border-radius: 999px; flex: 0 0 auto;
+  display: inline-flex; align-items: center; justify-content: center;
+  font-size: 12px; color: rgb(var(--accent)); background: color-mix(in srgb, rgb(var(--accent)) 13%, transparent);
+}
+.disc-hero__bar input {
+  flex: 1; min-width: 0; background: transparent; border: 0; outline: none;
+  font-size: 13px; color: rgb(var(--ink));
+}
+.disc-hero__bar input::placeholder { color: rgb(var(--muted)); }
+.disc-hero__meta { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; margin-top: 11px; font-size: 11px; color: rgb(var(--muted)); }
+.disc-hero__meta > i { font-size: 10px; }
+.disc-hero__pair { display: inline-flex; align-items: center; gap: 5px; flex-wrap: wrap; }
+.disc-area {
+  font-size: 10px; padding: 4px 10px; border-radius: 999px; cursor: pointer;
+  color: rgb(var(--muted)); background: transparent; border: 1px solid transparent;
+  transition: color .22s var(--ease), background .22s var(--ease), border-color .22s var(--ease);
+}
+.disc-area:hover { color: rgb(var(--ink)); background: rgb(var(--bg-panel-2)); }
+.disc-area.is-on { color: rgb(var(--accent)); background: color-mix(in srgb, rgb(var(--accent)) 11%, transparent); border-color: color-mix(in srgb, rgb(var(--accent)) 35%, transparent); font-weight: 600; }
+.disc-strip { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 12px; }
+.disc-strip__filters { display: flex; flex-wrap: wrap; gap: 6px; flex: 1 1 auto; min-width: 0; }
+.disc-strip__search { width: 190px; flex: 0 0 auto; }
+@media (max-width: 700px) { .disc-strip__search { width: 100%; } }
+
+/* filtered toolbar: chips left, controls right, wraps cleanly instead of crowding */
+.page-bar { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 16px; }
+.page-bar__filters { display: flex; flex-wrap: wrap; gap: 6px; flex: 1 1 320px; min-width: 0; }
+.page-bar__tools { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+@media (max-width: 620px) {
+  .page-bar__filters { flex-basis: 100%; overflow-x: auto; flex-wrap: nowrap; padding-bottom: 2px; }
+  .page-bar__filters .chip { flex: 0 0 auto; }
+  .page-bar__tools { flex-basis: 100%; }
+  .page-bar__tools .inp { flex: 1 1 140px; width: auto !important; }
+}
+
+/* ============================================================================
+   Dashboard structure — hero pair, then work-first columns
+   ========================================================================== */
+.dash-hero {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 20px;
+  padding: 22px clamp(18px, 3vw, 30px); border-radius: 20px; margin-bottom: 18px;
+  background:
+    radial-gradient(120% 140% at 100% 0%, color-mix(in srgb, rgb(var(--accent)) 10%, transparent) 0%, transparent 55%),
+    rgb(var(--bg-panel));
+  border: 1px solid rgb(var(--line));
+  animation: rise .4s var(--ease) both;
+}
+.dash-hero__cell { min-width: 0; }
+.dash-hero__rule { width: 1px; background: rgb(var(--line)); justify-self: center; }
+.dash-hero__label { font-size: 10px; text-transform: uppercase; letter-spacing: .09em; color: rgb(var(--muted)); font-weight: 500; }
+.dash-hero__value { font-size: clamp(24px, 3vw, 34px); font-weight: 700; color: rgb(var(--ink)); letter-spacing: -.02em; margin-top: 4px; }
+.dash-hero__sub { font-size: 10.5px; color: rgb(var(--muted)); margin-top: 5px; line-height: 1.55; }
+.dash-hero--3 { grid-template-columns: repeat(3, 1fr); }
+.dash-hero--4 { grid-template-columns: repeat(4, 1fr); }
+.dash-hero--3 .dash-hero__cell + .dash-hero__cell,
+.dash-hero--4 .dash-hero__cell + .dash-hero__cell { border-left: 1px solid rgb(var(--line)); padding-left: 20px; }
+.dash-hero--3 .dash-hero__value, .dash-hero--4 .dash-hero__value { font-size: clamp(20px, 2.1vw, 27px); }
+.dash-hero__value--lime { color: rgb(var(--accent)); }
+.dash-hero__value--amber { color: #fbbf24; }
+.dash-hero__value--red { color: #f87171; }
+.dash-hero__value--blue { color: #60a5fa; }
+.dash-hero__value--violet { color: #a78bfa; }
+.dash__grid { display: grid; grid-template-columns: minmax(0, 1.55fr) minmax(0, 1fr); gap: 16px; align-items: start; }
+.dash__grid--even { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.dash__main > *, .dash__side > * { margin-bottom: 16px; }
+.dash__main > *:last-child, .dash__side > *:last-child { margin-bottom: 0; }
+@media (max-width: 1080px) {
+  .dash__grid, .dash__grid--even { grid-template-columns: 1fr; }
+  .dash-hero, .dash-hero--3, .dash-hero--4 { grid-template-columns: 1fr 1fr; gap: 16px 14px; }
+  .dash-hero__rule { display: none; }
+  .dash-hero--3 .dash-hero__cell + .dash-hero__cell,
+  .dash-hero--4 .dash-hero__cell + .dash-hero__cell { border-left: 0; padding-left: 0; }
+}
+@media (max-width: 620px) {
+  .dash-hero, .dash-hero--3, .dash-hero--4 { grid-template-columns: 1fr; }
+  .dash-hero__value, .dash-hero--3 .dash-hero__value, .dash-hero--4 .dash-hero__value { font-size: 26px; }
+}
+
+/* ============================================================================
+   Settings — a quiet rail of sections beside one pane, instead of a wall of
+   thirteen stacked cards. One section is read at a time.
+   ========================================================================== */
+.set-shell { display: grid; grid-template-columns: 208px minmax(0, 1fr); gap: 18px; align-items: start; }
+.set-rail {
+  position: sticky; top: 0; display: flex; flex-direction: column; gap: 2px;
+  padding: 8px; border-radius: 16px; background: rgb(var(--bg-panel) / .55);
+  border: 1px solid rgb(var(--line));
+}
+.set-rail__item {
+  display: flex; align-items: center; gap: 10px; width: 100%; text-align: left;
+  padding: 9px 11px; border-radius: 11px; font-size: 11.5px; font-weight: 500;
+  color: rgb(var(--muted)); background: transparent; border: 1px solid transparent;
+  cursor: pointer;
+  transition: color .25s var(--ease), background .25s var(--ease), border-color .25s var(--ease), transform .25s var(--ease);
+}
+.set-rail__item i { width: 15px; text-align: center; font-size: 11px; opacity: .85; transition: transform .3s var(--ease); }
+.set-rail__item:hover { color: rgb(var(--ink)); background: rgb(var(--bg-panel-2)); transform: translateX(2px); }
+.set-rail__item:hover i { transform: scale(1.12); }
+.set-rail__item.is-on {
+  color: rgb(var(--ink)); background: color-mix(in srgb, rgb(var(--accent)) 12%, transparent);
+  border-color: color-mix(in srgb, rgb(var(--accent)) 34%, transparent);
+}
+.set-rail__item.is-on i { color: rgb(var(--accent)); opacity: 1; }
+.set-pane > * { animation: rise .34s var(--ease) both; }
+@media (max-width: 900px) {
+  .set-shell { grid-template-columns: 1fr; }
+  .set-rail {
+    position: static; flex-direction: row; overflow-x: auto; gap: 4px;
+    padding: 6px; scrollbar-width: none;
+  }
+  .set-rail::-webkit-scrollbar { display: none; }
+  .set-rail__item { width: auto; flex: 0 0 auto; white-space: nowrap; }
+  .set-rail__item:hover { transform: none; }
+}
+
+/* ============================================================================
+   Metric tiles — the one component every page opens with
+   ========================================================================== */
+.stat {
+  position: relative; overflow: hidden;
+  padding: 18px 18px 16px; border-radius: 18px;
+  background: rgb(var(--bg-panel)); border: 1px solid rgb(var(--line));
+  transition: transform .32s var(--ease), box-shadow .32s var(--ease), border-color .32s var(--ease);
+}
+.stat::before {
+  content: ''; position: absolute; left: 0; top: 14px; bottom: 14px; width: 3px;
+  border-radius: 999px; background: rgb(var(--accent));
+  transition: transform .32s var(--ease);
+}
+.stat:hover { transform: translateY(-3px); box-shadow: var(--shadow-lift); border-color: color-mix(in srgb, rgb(var(--accent)) 30%, rgb(var(--line))); }
+.stat:hover::before { transform: scaleY(1.35); }
+.stat--red::before { background: rgb(var(--tone-red-fg)); }
+.stat--amber::before { background: rgb(var(--tone-amber-fg)); }
+.stat--blue::before { background: rgb(var(--tone-blue-fg)); }
+.stat--violet::before { background: rgb(var(--tone-violet-fg)); }
+.stat__ico {
+  position: absolute; right: 14px; top: 14px; width: 32px; height: 32px;
+  border-radius: 10px; display: inline-flex; align-items: center; justify-content: center;
+  font-size: 12px; color: rgb(var(--muted)); background: rgb(var(--bg-panel-2));
+}
+.stat__label { font-size: 10px; text-transform: uppercase; letter-spacing: .08em; color: rgb(var(--muted)); font-weight: 500; padding-right: 40px; }
+.stat__value { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; font-size: 26px; font-weight: 700; color: rgb(var(--ink)); line-height: 1.15; margin-top: 6px; letter-spacing: -.02em; }
+.stat__badge { display: inline-flex; align-items: center; gap: 4px; font-size: 9.5px; font-weight: 500; color: rgb(var(--muted)); background: rgb(var(--bg-panel-2)); border: 1px solid rgb(var(--line)); border-radius: 999px; padding: 2px 8px; }
+.stat__sub { font-size: 10px; color: rgb(var(--muted)); margin-top: 6px; line-height: 1.5; }
+.stat__spark { position: absolute; right: 14px; bottom: 12px; }
+@media (max-width: 640px) { .stat__value { font-size: 21px; } }
+
+/* ============================================================================
+   File vault folders — browse the vault like a drive
+   ========================================================================== */
+.folders { padding: 12px 14px 14px; }
+.folders__crumbs { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin-bottom: 10px; }
+.folders__crumb {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-size: 10.5px; padding: 5px 10px; border-radius: 8px; cursor: pointer;
+  color: rgb(var(--muted)); background: transparent; border: 0;
+  transition: background .24s var(--ease), color .24s var(--ease);
+}
+.folders__crumb:hover { background: rgb(var(--bg-panel-2)); color: rgb(var(--ink)); }
+.folders__crumb.is-on { color: rgb(var(--ink)); background: rgb(var(--bg-panel-2)); font-weight: 600; }
+.folders__sep { font-size: 7px; color: rgb(var(--muted)); opacity: .6; }
+.folders__tools { margin-left: auto; display: inline-flex; gap: 6px; }
+.folders__grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 9px; }
+.folder-tile {
+  display: flex; flex-direction: column; align-items: flex-start; gap: 3px;
+  text-align: left; padding: 12px; border-radius: 14px; cursor: pointer;
+  background: rgb(var(--bg-panel-2)); border: 1px solid rgb(var(--line));
+  transition: transform .28s var(--ease), border-color .28s var(--ease), box-shadow .28s var(--ease);
+}
+.folder-tile:hover {
+  transform: translateY(-3px);
+  border-color: color-mix(in srgb, rgb(var(--accent)) 45%, transparent);
+  box-shadow: var(--shadow-lift);
+}
+.folder-tile__icon { font-size: 15px; color: rgb(var(--accent)); margin-bottom: 3px; }
+.folder-tile__name { font-size: 11px; font-weight: 600; color: rgb(var(--ink)); max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.folder-tile__meta { font-size: 9px; color: rgb(var(--muted)); }
+.folder-tile--new { border-style: dashed; background: transparent; }
+.folder-tile--new .folder-tile__icon { color: rgb(var(--muted)); }
 
 /* ============================================================================
    Global polish — rhythm, motion and depth applied once so every page benefits
@@ -789,7 +1000,7 @@ a.btn, button.icon-btn, .social-chip { cursor: pointer; }
    Sign-in page — the door to the workspace
    ========================================================================== */
 .signin {
-  position: fixed; inset: 0; z-index: 300; overflow: auto;
+  position: fixed; inset: 0; z-index: 1500; overflow: auto;
   background: rgb(var(--bg-main));
 }
 .signin__glow {

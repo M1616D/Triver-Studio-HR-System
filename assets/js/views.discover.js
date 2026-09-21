@@ -837,46 +837,49 @@
       const counts = {};
       FILTERS.forEach(f => { counts[f[0]] = applyChip(all, f[0]).length; });
 
-      el.innerHTML = ui.card(
-        ui.steps(['Search', 'Filter', 'Deep info', 'Build website', 'Send & triage'], stepIndex(leads)) +
-        '<div class="mt-3 grid grid-cols-1 lg:grid-cols-[1.5fr_1fr_auto] gap-3 items-end">' +
-          '<div class="relative">' +
-            '<p class="lbl">What kind of business are you looking for?</p>' +
-            '<div class="search-hero">' +
-              ui.icon('fa-magnifying-glass', 'text-textMuted text-xs') +
-              '<input id="discover-type" data-model="ui.discoverType" value="' + U.attr(typed) + '" placeholder="dentist, restaurant, gym, hotel, pharmacy…" autocomplete="off" />' +
-              '<button class="btn btn-ghost btn-sm hidden sm:inline-flex" data-action="discover.surprise" title="Surprise me"><i class="fa-solid fa-shuffle"></i></button>' +
-              '<button class="btn btn-lime btn-sm" data-action="discover.search"><i class="fa-solid fa-magnifying-glass"></i> Search</button>' +
-            '</div>' +
-            '<div id="discover-suggest" class="suggest hidden"></div>' +
+      /*
+       * The new structure: the search is the page — one wide bar at the top
+       * with the area beside it, the map immediately under the results so a
+       * search answers in two places at once, and the filter chips as a quiet
+       * count strip between them. No steps ribbon explaining the obvious.
+       */
+      el.innerHTML =
+        '<div class="disc-hero">' +
+          '<div class="disc-hero__bar">' +
+            '<span class="disc-hero__glass">' + ui.icon('fa-magnifying-glass') + '</span>' +
+            '<input id="discover-type" data-model="ui.discoverType" value="' + U.attr(typed) + '" placeholder="What are you looking for — dentist, restaurant, gym?" autocomplete="off" />' +
+            '<button class="btn btn-lime" data-action="discover.search">Search</button>' +
           '</div>' +
-          '<div class="grid grid-cols-2 gap-2">' +
-            ui.field({ label: 'Area in Addis Ababa', model: 'ui.discoverArea', value: areaInit, options: App.dict.areas.map(a => [a[0], a[1]]), change: 'discover.research' }) +
-            ui.field({ label: 'How far around', model: 'ui.discoverRadius', value: radiusInit, options: RADIUS, change: 'discover.research' }) +
+          '<div id="discover-suggest" class="suggest hidden"></div>' +
+          '<div class="disc-hero__meta">' +
+            '<span class="disc-hero__pair">' + ui.icon('fa-location-dot') + App.dict.areas.map(function (a) { return '<button class="disc-area' + (a[0] === areaInit ? ' is-on' : '') + '" data-action="discover.areaSet" data-arg="' + a[0] + '">' + U.esc(a[1]) + '</button>'; }).join('') + '</span>' +
+            '<span class="disc-hero__pair">' + ui.icon('fa-circle-notch') + RADIUS.map(function (r) { return '<button class="disc-area' + (String(r[0]) === String(radiusInit) ? ' is-on' : '') + '" data-action="discover.radiusSet" data-arg="' + r[0] + '">' + U.esc(r[1].replace(' km', 'km')) + '</button>'; }).join('') + '</span>' +
+            '<button class="disc-area" data-action="discover.import" title="Import CSV / JSON"><i class="fa-solid fa-file-import"></i></button>' +
           '</div>' +
-          '<p class="text-[10px] text-textMuted lg:max-w-[190px]">' + ui.icon('fa-circle-info', 'text-[9px]') +
-            ' Every result is a real Google Maps business — open one to see its reviews, phone, website and hours.</p>' +
         '</div>' +
-        '<div class="mt-3 flex flex-nowrap gap-1.5 overflow-x-auto no-scrollbar pb-1">' +
-          App.dict.businessTypes.map(t => '<button class="chip shrink-0" data-action="discover.quickType" data-arg="' + t[0] + '">' + ui.icon(t[2], 'text-[9px]') + ' ' + U.esc(t[1]) + '</button>').join('') +
-          '<button class="chip shrink-0" data-action="discover.import"><i class="fa-solid fa-file-import text-[9px]"></i> Import CSV / JSON</button>' +
-          '<button class="chip shrink-0" data-action="discover.reset"><i class="fa-solid fa-rotate-left text-[9px]"></i> Show all ' + total + '</button>' +
-        '</div>', 'mb-4');
-
-      el.innerHTML +=
-        '<div class="flex items-center justify-between gap-3 flex-wrap mb-3">' +
-        '<div class="flex flex-nowrap gap-1.5 overflow-x-auto no-scrollbar pb-1 max-w-full">' + FILTERS.map(f =>
-          '<button class="chip ' + (s.filter === f[0] ? 'is-on' : '') + '" data-action="discover.filter" data-arg="' + f[0] + '">' +
-          ui.icon(f[2], 'text-[9px]') + U.esc(f[1]) + '<span class="chip-n">' + counts[f[0]] + '</span></button>').join('') + '</div>' +
-        '<div class="w-full lg:w-auto"></div>' +
-        '<div class="flex items-center gap-2">' +
-        '<input class="inp w-[170px]" id="discover-search" data-model="ui.discoverSearch" data-change-action="discover.applyFilters" data-enter="discover.applyFilters" value="' + U.attr(s.search) + '" placeholder="Filter by name / phone…" />' +
-        ui.field({
-          label: '', model: 'ui.discoverSort', value: s.sort,
-          enter: 'discover.applyFilters',
-          options: [['rating', 'Sort: rating'], ['reviews', 'Sort: reviews'], ['value', 'Sort: deal size'], ['dist', 'Sort: nearest'], ['name', 'Sort: name'], ['updated', 'Sort: recently updated']]
-        }) +
-        '</div></div>';
+        (s.error || s.note || App.providers.quotaBlocked()
+          ? '<div class="mt-3">' + (s.error
+            ? '<div class="glass-soft rounded-xl p-3 mb-3 text-[11px] flex items-start gap-2.5 tone tone-red border">' + ui.icon('fa-triangle-exclamation', 'mt-0.5') +
+              '<div class="min-w-0 flex-1"><p class="whitespace-pre-line">' + linkify(s.error) + '</p>' +
+              '<div class="btn-row mt-2"><button class="btn btn-lime btn-sm" data-action="discover.search"><i class="fa-solid fa-rotate"></i> Try again</button>' +
+              '<button class="btn btn-ghost btn-sm" data-nav="settings"><i class="fa-solid fa-gear"></i> Google Maps settings</button>' +
+              '<button class="btn btn-ghost btn-sm" data-action="discover.check"><i class="fa-solid fa-plug-circle-check"></i> Why is Google refusing?</button></div></div></div>'
+            : App.providers.quotaBlocked()
+              ? '<div class="glass-soft rounded-xl p-3 mb-3 text-[11px] flex items-start gap-2.5 tone tone-amber border">' + ui.icon('fa-gauge-high', 'mt-0.5') +
+                '<div class="min-w-0 flex-1"><p class="font-semibold mb-1">Google\u2019s search allowance for today is spent</p>' +
+                '<p class="text-textMuted whitespace-pre-line">' + U.esc(App.providers.quotaNote()) + '</p>' +
+                '<div class="btn-row mt-2"><button class="btn btn-ghost btn-sm" data-action="discover.search">Open a list I already searched</button>' +
+                '<a class="btn btn-ghost btn-sm" target="_blank" rel="noopener" href="https://console.cloud.google.com/apis/api/places.googleapis.com/quotas">Raise the allowance</a>' +
+                '<button class="btn btn-ghost btn-sm" data-action="discover.import">Import a list instead</button></div></div></div>'
+              : '<div class="glass-soft rounded-xl p-2.5 mb-3 text-[10px] flex items-center gap-2 tone tone-blue border">' + ui.icon('fa-circle-info', '') + '<span>' + U.esc(s.note) + '</span>' +
+                (s.fromCache ? '<button class="btn btn-ghost btn-sm ml-auto shrink-0" data-action="discover.refreshLive">Pull the newest from Google</button>' : '') + '</div>') + '</div>'
+          : '') +
+        '<div class="disc-strip">' +
+          '<div class="disc-strip__filters">' + FILTERS.map(f =>
+            '<button class="chip ' + (s.filter === f[0] ? 'is-on' : '') + '" data-action="discover.filter" data-arg="' + f[0] + '">' +
+            ui.icon(f[2], 'text-[9px]') + U.esc(f[1]) + '<span class="chip-n">' + counts[f[0]] + '</span></button>').join('') + '</div>' +
+          '<input class="inp disc-strip__search" id="discover-search" data-model="ui.discoverSearch" data-change-action="discover.applyFilters" data-enter="discover.applyFilters" value="' + U.attr(s.search) + '" placeholder="Filter by name / phone…" />' +
+        '</div>';
 
       el.innerHTML +=
         '<div class="flex items-center justify-between gap-2 mb-2 flex-wrap">' +
@@ -892,32 +895,6 @@
         '<button class="btn btn-lime btn-sm" data-action="discover.bulkSend">' + ui.icon('fa-paper-plane', 'text-[9px]') + ' Batch send (' + s.selected.length + ')</button>' +
         '<button class="btn btn-ghost btn-sm" data-action="discover.export">' + ui.icon('fa-file-csv', 'text-[9px]') + ' Export CSV</button>' +
         '</div></div>';
-
-      if (s.error) el.innerHTML += '<div class="glass-soft rounded-xl p-3 mb-3 text-[11px] flex items-start gap-2.5 tone tone-red border">' +
-        ui.icon('fa-triangle-exclamation', 'mt-0.5') +
-        '<div class="min-w-0 flex-1"><p class="whitespace-pre-line">' + linkify(s.error) + '</p>' +
-        '<div class="btn-row mt-2">' +
-        '<button class="btn btn-lime btn-sm" data-action="discover.search"><i class="fa-solid fa-rotate"></i> Try again</button>' +
-        '<button class="btn btn-ghost btn-sm" data-nav="settings"><i class="fa-solid fa-gear"></i> Open Google Maps settings</button>' +
-        '<button class="btn btn-ghost btn-sm" data-action="discover.check"><i class="fa-solid fa-plug-circle-check"></i> Why is Google refusing?</button>' +
-        '</div></div></div>';
-      else if (s.note) el.innerHTML += '<div class="glass-soft rounded-xl p-2.5 mb-3 text-[10px] flex items-center gap-2 tone tone-blue border">' +
-        ui.icon('fa-circle-info', '') + '<span>' + U.esc(s.note) + '</span>' +
-        (s.fromCache ? '<button class="btn btn-ghost btn-sm ml-auto shrink-0" data-action="discover.refreshLive">' +
-          ui.icon('fa-rotate', '') + ' Pull the newest from Google</button>' : '') + '</div>';
-
-      /* the daily Google allowance is spent: one quiet line, never a blocker */
-      const quota = App.providers.quotaBlocked();
-      if (quota) el.innerHTML += '<div class="glass-soft rounded-xl p-3 mb-3 text-[11px] flex items-start gap-2.5 tone tone-amber border">' +
-        ui.icon('fa-gauge-high', 'mt-0.5') +
-        '<div class="min-w-0 flex-1"><p class="font-semibold mb-1">Google\u2019s search allowance for today is spent</p>' +
-        '<p class="text-textMuted whitespace-pre-line">' + U.esc(App.providers.quotaNote()) + '</p>' +
-        '<div class="btn-row mt-2">' +
-        '<button class="btn btn-ghost btn-sm" data-action="discover.search">' + ui.icon('fa-rotate', '') + ' Open a list I already searched</button>' +
-        '<a class="btn btn-ghost btn-sm" target="_blank" rel="noopener" href="https://console.cloud.google.com/apis/api/places.googleapis.com/quotas">' +
-        ui.icon('fa-arrow-up-right-from-square', '') + ' Raise the allowance</a>' +
-        '<button class="btn btn-ghost btn-sm" data-action="discover.import">' + ui.icon('fa-file-import', '') + ' Import a list instead</button>' +
-        '</div></div></div>';
 
       el.innerHTML += mapCard(leads);
       el.innerHTML += '<div id="discover-results" class="space-y-2 stagger">' +
@@ -937,9 +914,18 @@
 
   /* -------------------------------- actions -------------------------------- */
   App.action('discover.search', () => runSearch());
+  App.action('discover.areaSet', el => {
+    App.store.set('ui.discoverArea', el.getAttribute('data-arg'), { silent: true });
+    App.refresh();
+    if (q().queue.length) runSearch();
+  });
+  App.action('discover.radiusSet', el => {
+    App.store.set('ui.discoverRadius', Number(el.getAttribute('data-arg')) || 8, { silent: true });
+    App.refresh();
+    if (q().queue.length) runSearch();
+  });
   App.action('discover.refreshLive', () => runSearch({ fresh: true }));
   App.action('discover.mapRefresh', () => upgradeMap(false));
-  App.action('discover.research', () => { if (q().queue.length) runSearch(); });
   App.action('discover.pickType', el => {
     const key = el.getAttribute('data-arg');
     App.store.set('ui.discoverType', key, { silent: true });

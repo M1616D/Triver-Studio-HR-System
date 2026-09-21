@@ -226,6 +226,7 @@
         clientId: meta.clientId || '',
         description: meta.description || '',
         language: meta.language || '',
+        folder: String(meta.folder || ''),      /* the path inside an uploaded folder */
         tags: meta.tags || [],
         notes: meta.notes || '',
         cloud: { driveId: '', syncedAt: '' },
@@ -233,11 +234,91 @@
         previewable: /^(text\/|image\/|application\/(json|javascript|xml|x-yaml|pdf))/.test(file.type || '') ||
           /\.(html?|css|js|mjs|json|txt|md|csv|sql|php|py|ts|tsx|jsx|yml|yaml|svg|png|jpe?g|gif|webp|ico|pdf)$/i.test(name)
       }, meta.overrides || {});
+      /* a folder dropped from the desktop carries its own path on the File
+         object — it wins over metadata, so the vault mirrors what was uploaded */
+      if (file.folder && !doc.folder) doc.folder = String(file.folder);
       /* when the file itself is a website, remember it as a website record too */
       if (meta.linkSiteId) doc.projectId = meta.linkSiteId;
       App.store.add('documents', doc);
       App.log('file', 'Added “' + name + '” (' + U.bytes(file.size) + ') to the file vault', doc.id);
       return doc;
+    },
+
+    /* ------------------------------ folders ------------------------------- */
+    /** every folder path: files carry paths, and empty folders are remembered so
+        structure can exist before the files do ("website/v2" style) */
+    folders() {
+      const set = {};
+      (App.store.get('folders.items', []) || []).forEach(f => { const k = String(f || '').trim(); if (k) set[k] = set[k] || 0; });
+      files.all().forEach(d => { const f = String(d.folder || '').trim(); if (f) set[f] = (set[f] || 0) + 1; });
+      return Object.keys(set).sort().map(k => ({ path: k, count: set[k] }));
+    },
+
+    /** the children of one folder path: sub-folders and the files inside it */
+    browse(path) {
+      const p = String(path || '').replace(/\/+$/, '');
+      const all = files.all().concat(
+        (App.store.get('folders.items', []) || []).map(f => ({ folder: f, empty: true })));
+      const rows = all.filter(d => !d.empty && String(d.folder || '') === p);
+      const subs = {};
+      all.forEach(d => {
+        const f = String(d.folder || '');
+        if (!f || f === p || (p && f.indexOf(p + '/') !== 0)) return;
+        const rest = p ? f.slice(p.length + 1) : f;
+        const first = rest.split('/')[0];
+        if (first) subs[(p ? p + '/' : '') + first] = (subs[(p ? p + '/' : '') + first] || 0) + 1;
+      });
+      return { path: p, folders: Object.keys(subs).sort().map(k => ({ path: k, count: subs[k] })), files: rows };
+    },
+
+    /** create an empty folder so structure can exist before files do */
+    createFolder(path) {
+      const p = String(path || '').trim().replace(/^\/+|\/+$/g, '');
+      if (!p) return { error: 'Give the folder a name.' };
+      const list = (App.store.get('folders.items', []) || []).slice();
+      if (list.indexOf(p) === -1) { list.push(p); App.store.set('folders.items', list); App.store.save(); }
+      return { path: p };
+    },
+
+    /** rename a folder: every file inside follows to the new path */
+    renameFolder(oldPath, newPath) {
+      const from = String(oldPath || '').replace(/\/+$/, '');
+      const to = String(newPath || '').trim().replace(/^\/+|\/+$/g, '');
+      if (!to) return { error: 'Give the folder a name.' };
+      let n = 0;
+      files.all().forEach(d => {
+        const f = String(d.folder || '');
+        if (f === from || f.indexOf(from + '/') === 0) {
+          const next = to + f.slice(from.length);
+          App.store.patch('documents', d.id, { folder: next, updatedAt: U.now() });
+          n++;
+        }
+      });
+      const empties = (App.store.get('folders.items', []) || []).slice();
+      const kept = [];
+      empties.forEach(f => {
+        if (f === from || f.indexOf(from + '/') === 0) kept.push(to + f.slice(from.length));
+        else kept.push(f);
+      });
+      App.store.set('folders.items', kept);
+      App.store.save();
+      return { moved: n, path: to };
+    },
+
+    /** delete a folder and everything inside it */
+    async deleteFolder(path) {
+      const p = String(path || '').replace(/\/+$/, '');
+      const doomed = files.all().filter(d => {
+        const f = String(d.folder || '');
+        return f === p || f.indexOf(p + '/') === 0;
+      });
+      for (let i = 0; i < doomed.length; i++) {
+        await files.remove(doomed[i].id);
+        App.store.remove('documents', doomed[i].id);
+      }
+      App.store.set('folders.items', (App.store.get('folders.items', []) || []).filter(f => f !== p && f.indexOf(p + '/') !== 0));
+      App.store.save();
+      return { removed: doomed.length };
     },
 
     /** add several files at once, skipping anything that fails */
@@ -315,6 +396,10 @@
       opts = opts || {};
       const t = String(term || '').trim().toLowerCase();
       let rows = files.all();
+      if (opts.folder !== undefined) {
+        const p = String(opts.folder || '');
+        rows = rows.filter(d => String(d.folder || '') === p);
+      }
       if (opts.category && opts.category !== 'all') rows = rows.filter(d => d.category === opts.category);
       if (opts.projectId) rows = rows.filter(d => d.projectId === opts.projectId || d.clientId === opts.projectId);
       if (opts.missing) rows = rows.filter(d => d.missing);

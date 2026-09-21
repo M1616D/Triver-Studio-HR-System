@@ -821,26 +821,46 @@
     },
 
     /** KPI card with the reference dashboard's circular icon badge */
+    /*
+     * The metric tile, rebuilt: the number is the page's biggest type, the icon
+     * is quiet chrome in the corner, and the accent edge gives each card a
+     * single hue without a rainbow of badges. Reads as a dashboard, not a form.
+     */
+    /**
+     * The strip a page opens with: two to four numbers, each with one quiet
+     * line under it. Replaces the old wall of stat cards, so a screen starts
+     * with what the number is, not with four paragraphs of explanation.
+     */
+    hero(cells) {
+      const list = cells || [];
+      return '<div class="dash-hero dash-hero--' + list.length + '">' + list.map(c =>
+        '<div class="dash-hero__cell">' +
+        '<p class="dash-hero__label">' + U.esc(c.label) + '</p>' +
+        '<p class="dash-hero__value' + (c.tone ? ' dash-hero__value--' + c.tone : '') + '">' +
+        (c.valueHtml || U.esc(c.value == null ? '0' : c.value)) + '</p>' +
+        (c.sub ? '<p class="dash-hero__sub">' + U.esc(c.sub) + '</p>' : '') +
+        (c.cta ? '<button class="btn btn-ghost btn-sm mt-3"' +
+          (c.nav ? ' data-nav="' + U.attr(c.nav) + '"' : ' data-action="' + U.attr(c.action) + '" data-arg="' + U.attr(c.arg || '') + '"') + '>' +
+          (c.icon ? this.icon(c.icon) + ' ' : '') + U.esc(c.cta) + '</button>' : '') +
+        '</div>').join('') + '</div>';
+    },
     stat(o) {
       o.icon = o.icon || this.statIcon(o);
-      const tone = o.tone === 'red' ? 'text-red-300 bg-red-500/10' :
-        o.tone === 'amber' ? 'text-amber-300 bg-amber-500/10' :
-        o.tone === 'blue' ? 'text-sky-300 bg-sky-500/10' :
-        o.tone === 'violet' ? 'text-violet-300 bg-violet-500/10' : 'text-accentMint bg-accentMint/10';
+      const edge = o.tone === 'red' ? 'stat--red' :
+        o.tone === 'amber' ? 'stat--amber' :
+        o.tone === 'blue' ? 'stat--blue' :
+        o.tone === 'violet' ? 'stat--violet' : 'stat--lime';
       const arrow = o.tone === 'red' ? 'fa-arrow-trend-down' : 'fa-arrow-trend-up';
-      return '<div class="glass-card metric-card hover-lift p-5 flex items-center gap-4 min-h-[110px]">' +
-        '<div class="stat-ico"><i class="fa-solid ' + o.icon + '"></i></div>' +
-        '<div class="min-w-0 flex-1">' +
-        '<p class="text-[11px] text-textMuted font-medium">' + U.esc(o.label) + '</p>' +
-        '<div class="flex items-baseline gap-2 flex-wrap mt-0.5">' +
-        '<h2 class="text-2xl font-bold text-white tracking-tight num"><span class="count-pop">' +
-        (o.valueHtml || U.esc(o.value == null ? '0' : o.value)) + '</span></h2>' +
-        (o.badge ? '<span class="text-[10px] flex items-center gap-1 rounded px-1.5 py-0.5 font-medium ' + tone + '">' +
+      return '<div class="stat ' + edge + '">' +
+        '<span class="stat__ico"><i class="fa-solid ' + o.icon + '"></i></span>' +
+        '<p class="stat__label">' + U.esc(o.label) + '</p>' +
+        '<p class="stat__value num"><span class="count-pop">' +
+        (o.valueHtml || U.esc(o.value == null ? '0' : o.value)) + '</span>' +
+        (o.badge ? '<span class="stat__badge">' +
           (o.trend ? '<i class="fa-solid ' + arrow + ' text-[8px]"></i>' : '') + U.esc(o.badge) + '</span>' : '') +
-        '</div>' +
-        (o.sub ? '<p class="text-[10px] text-textMuted mt-1 truncate">' + (o.subHtml || U.esc(o.sub)) + '</p>' : '') +
-        '</div>' +
-        (o.spark ? this.sparkline(o.spark, 'w-14 h-8 hidden sm:block') : '') +
+        '</p>' +
+        (o.sub ? '<p class="stat__sub">' + (o.subHtml || U.esc(o.sub)) + '</p>' : '') +
+        (o.spark ? this.sparkline(o.spark, 'stat__spark') : '') +
         '</div>';
     },
     field(o) {

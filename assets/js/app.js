@@ -82,7 +82,7 @@
       const href = s.url(raw || '');
       if (!href) return '';
       return '<a href="' + U.esc(href) + '" target="_blank" rel="noopener" title="' + U.esc(s.label) + '"' +
-        ' class="social-chip tone tone-' + (s.tone || 'muted') + '">' +
+        ' class="social-chip">' +
         '<i class="fa-' + (s.brand ? 'brands' : 'solid') + ' ' + s.icon + '"></i></a>';
     }).filter(Boolean).join('');
   }

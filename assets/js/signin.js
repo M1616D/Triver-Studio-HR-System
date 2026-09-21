@@ -142,8 +142,7 @@
               '<i class="fa-solid fa-laptop"></i><span>Continue on this device</span>' +
             '</button>' +
             (App.vault.has()
-              ? '<button type="button" class="signin__btn signin__btn--quiet" data-signin="passphrase">' +
-                  '<i class="fa-solid fa-shield-halved"></i><span>Unlock with my passphrase</span></button>'
+              ? '<p class="signin__hint">This device\u2019s copy is passphrase-protected — you will be asked for it after you choose.</p>'
               : '') +
             '<button type="button" class="signin__btn signin__btn--quiet" data-signin="file">' +
               '<i class="fa-solid fa-file-import"></i><span>Open a backup file</span></button>' +
@@ -158,6 +157,17 @@
 
   async function handle(action) {
     if (action === 'device') {
+      if (App.vault.has()) {
+        note('This device\u2019s copy is protected. Enter the passphrase to open it.', 'busy');
+        App.vault.screen({
+          mode: 'unlock',
+          onCancel: show,
+          onSubmit: state => finish({ mode: 'passphrase' }, state)
+        });
+        if (overlay && overlay.parentNode) overlay.parentNode.removeChild(overlay);
+        overlay = null;
+        return;
+      }
       finish({ mode: 'device' });
       return;
     }
@@ -224,24 +234,12 @@
     },
 
     /**
-     * The door. A protected workspace is asked for its passphrase (that screen
-     * is the sign-in page); otherwise this page appears unless the device is
-     * already signed in. `next` receives the decrypted workspace when there is
-     * one, so the two steps never double up.
+     * The door. This page appears unless the device is already signed in; a
+     * passphrase-protected workspace asks for its passphrase only after a
+     * choice is made, so the page is never a form to fill in.
      */
     begin(next) {
       onDone = next;
-      if (App.vault.has()) {
-        App.vault.screen({
-          mode: 'unlock',
-          onSubmit: state => {
-            auth.mark({ mode: 'passphrase' });
-            const go = onDone; onDone = null;
-            if (go) go(state);
-          }
-        });
-        return;
-      }
       if (auth.signedIn()) { onDone = null; next(); return; }
       show();
     },

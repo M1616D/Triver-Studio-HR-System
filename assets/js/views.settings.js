@@ -26,12 +26,15 @@
     };
   }
 
-  function anchor(id) { return '<a id="settings-' + id + '"></a>'; }
+  function tabState() {
+    App.router.q.settings = App.router.q.settings || { tab: 'company' };
+    return App.router.q.settings;
+  }
 
   function companyCard() {
     const co = App.store.get('settings.company', {});
     return ui.card(
-      anchor('company') + ui.head('Company profile',
+      ui.head('Company profile',
         '<button class="btn btn-lime btn-sm" data-action="settings.save"><i class="fa-solid fa-floppy-disk"></i> Save</button>',
         'Used in messages, invoices, proposals and generated websites') +
       '<div class="grid grid-cols-1 md:grid-cols-3 gap-3">' +
@@ -74,7 +77,7 @@
       });
     }).join('');
     return ui.card(
-      anchor('socials') + ui.head('Social & business profiles',
+      ui.head('Social & business profiles',
         '<button class="btn btn-lime btn-sm" data-action="settings.save"><i class="fa-solid fa-floppy-disk"></i> Save</button>',
         'Your public presence — shown on the company card and offered to clients') +
       '<div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">' + rows + '</div>', 'mb-4');
@@ -84,7 +87,7 @@
     const g = App.store.get('settings.google', {});
     const keySet = !!g.apiKey;
     return ui.card(
-      anchor('google') + ui.head('Google Maps & discovery',
+      ui.head('Google Maps & discovery',
         '<div class="btn-row">' +
         '<button class="btn btn-lime btn-sm" data-action="settings.checkSources"><i class="fa-solid fa-plug-circle-check"></i> Check connections</button>' +
         '</div>',
@@ -117,7 +120,7 @@
     const cur = String(a.model || 'gemini-3.6-flash');
     const opts = (list.length ? list : [cur]).map(n => [n, n + (n === cur ? ' — in use' : '')]);
     return ui.card(
-      anchor('ai') + ui.head('AI (Gemini)',
+      ui.head('AI (Gemini)',
         '<div class="btn-row">' +
         '<button class="btn btn-ghost btn-sm" data-action="settings.aiModels"><i class="fa-solid fa-list"></i> Detect models</button>' +
         '<button class="btn btn-lime btn-sm" data-action="settings.aiTest"><i class="fa-solid fa-plug-circle-check"></i> Test AI</button>' +
@@ -143,7 +146,7 @@
   function outreachCard() {
     const o = App.store.get('settings.outreach', {});
     return ui.card(
-      anchor('outreach') + ui.head('Outreach rules', ui.badge('automation', 'lime'), 'How the system behaves between messages') +
+      ui.head('Outreach rules', ui.badge('automation', 'lime'), 'How the system behaves between messages') +
       '<div class="grid grid-cols-1 md:grid-cols-3 gap-3">' +
       ui.field({ label: 'Follow-up after no reply (days)', model: 'settings.outreach.followUpDays', value: o.followUpDays, type: 'number' }) +
       ui.field({ label: 'Second follow-up (days)', model: 'settings.outreach.secondFollowUpDays', value: o.secondFollowUpDays, type: 'number' }) +
@@ -191,7 +194,7 @@
       '<p class="text-[9px] text-textMuted mt-2">Sent to: ' + U.esc(lead.name) + ' · ' + U.esc(lead.phone || '') + '</p>');
 
     return ui.card(
-      anchor('messages') + ui.head('Cold-message library',
+      ui.head('Cold-message library',
         '<button class="btn btn-ghost btn-sm" data-action="tplmsg.new"><i class="fa-solid fa-plus"></i> New message</button>',
         'These are the messages the system personalises with each business\'s Google data') +
       '<div class="flex flex-wrap gap-1.5 mb-3">' + chips + '</div>' +
@@ -201,7 +204,7 @@
   function integrationCard() {
     const integ = App.store.get('settings.integration', {});
     return ui.card(
-      anchor('integrations') + ui.head('Sending integration (optional)',
+      ui.head('Sending integration (optional)',
         '<button class="btn btn-ghost btn-sm" data-action="settings.testSender"><i class="fa-solid fa-satellite-dish"></i> Test sender</button>',
         'Without this, sending opens WhatsApp / Telegram with the message ready. With it, messages are posted automatically and replies can arrive through your webhook.') +
       '<div class="grid grid-cols-1 md:grid-cols-2 gap-3">' +
@@ -220,7 +223,7 @@
     const size = App.store.sizeKB();
     const meta = App.store.get('meta', {});
     return ui.card(
-      anchor('data') + ui.head('Data, backup & privacy',
+      ui.head('Data, backup & privacy',
         '<div class="btn-row">' +
         '<button class="btn btn-ghost btn-sm" data-action="data.export"><i class="fa-solid fa-download"></i> Export workspace</button>' +
         '<button class="btn btn-lime btn-sm" data-action="data.exportFull"><i class="fa-solid fa-box-archive"></i> Export everything (with files)</button>' +
@@ -250,7 +253,7 @@
     const co = App.store.get('settings.company', {});
     const logo = App.brand.logo();
     return ui.card(
-      anchor('branding') + ui.head('Studio identity',
+      ui.head('Studio identity',
         '<div class="btn-row">' +
         (logo ? '<button class="btn btn-ghost btn-sm" data-action="brand.remove"><i class="fa-solid fa-trash"></i> Remove logo</button>' : '') +
         '<button class="btn btn-lime btn-sm" data-action="brand.pickLogo"><i class="fa-solid fa-image"></i> ' + (logo ? 'Replace logo' : 'Upload logo') + '</button>' +
@@ -285,7 +288,7 @@
     const tone = s.protected ? (s.unlocked ? 'lime' : 'amber') : 'red';
     const label = s.protected ? (s.unlocked ? 'Encrypted and unlocked' : 'Encrypted and locked') : 'Not protected';
     return ui.card(
-      anchor('security') + ui.head('Security',
+      ui.head('Security',
         '<span class="tone tone-' + tone + ' text-[10px] px-2.5 py-1 rounded-full border">' + U.esc(label) + '</span>',
         'The workspace is encrypted on this device with AES-256-GCM, keyed from your passphrase') +
       '<div class="grid grid-cols-1 md:grid-cols-3 gap-3 mb-3">' +
@@ -325,7 +328,7 @@
       : mode === 'passphrase' ? 'Unlocked with the workspace passphrase'
         : 'Opened on this device';
     return ui.card(
-      anchor('account') + ui.head('This device',
+      ui.head('This device',
         '<span class="tone tone-' + (signedIn ? 'lime' : 'amber') + ' text-[10px] px-2.5 py-1 rounded-full border">' +
         (signedIn ? 'signed in' : 'sign-in page') + '</span>',
         'One workspace, many devices — signing out never deletes anything') +
@@ -355,7 +358,7 @@
     const tone = st.authorized ? 'lime' : (st.hasClientId ? 'amber' : 'muted');
     const label = st.authorized ? 'Connected' + (st.account ? ' · ' + st.account : '') : (st.hasClientId ? 'Client ID saved, not signed in' : 'Not set up');
     return ui.card(
-      anchor('cloud') + ui.head('Cloud — Google Drive',
+      ui.head('Cloud — Google Drive',
         '<span class="tone tone-' + tone + ' text-[10px] px-2.5 py-1 rounded-full border">' + U.esc(label) + '</span>',
         'Your own Google account is the off-device store: open the system anywhere and pull everything back') +
       (st.http ? '' : '<div class="glass-soft rounded-xl p-3 mb-3 text-[11px] flex items-start gap-2.5 tone tone-amber border">' +
@@ -417,7 +420,7 @@
       ['7. Repeat daily', 'The dashboard shows follow-ups due, replies to triage, money to collect and renewals.']
     ];
     return ui.card(
-      anchor('help') + ui.head('How this system works', ui.badge('manual', 'muted'), 'The daily loop that keeps the pipeline full') +
+      ui.head('How this system works', ui.badge('manual', 'muted'), 'The daily loop that keeps the pipeline full') +
       '<div class="grid grid-cols-1 md:grid-cols-2 gap-4">' +
       '<div class="space-y-2 text-[11px] text-gray-300">' +
       steps.map(s => '<div><b class="text-white">' + s[0] + '</b><br>' + U.esc(s[1]) + '</div>').join('') +
@@ -448,17 +451,55 @@
     sub: 'Company identity, security, cloud, discovery, outreach and backup',
     icon: 'fa-gear',
     render(el) {
-      const chips = [['company', 'Company'], ['branding', 'Identity'], ['security', 'Security'], ['cloud', 'Cloud'], ['google', 'Google Maps'], ['ai', 'AI'], ['outreach', 'Outreach rules'], ['messages', 'Messages'], ['integrations', 'Integrations'], ['data', 'Backup'], ['help', 'Guide']].map(k =>
-        '<a class="chip" href="#settings-' + k[0] + '">' + U.esc(k[1]) + '</a>').join('');
+      const co = App.store.get('settings.company', {});
+      const tab = tabState().tab;
+
+      /* one strip that says what is and is not wired up, then the sections */
+      const hero = ui.hero([
+        { label: 'Studio', valueHtml: U.esc(co.shortName || co.name || 'Not named yet'),
+          sub: co.tagline || 'add a name and tagline in Company' },
+        { label: 'Google Maps', value: App.store.get('settings.google.apiKey') ? 'Connected' : 'Not set',
+          tone: App.store.get('settings.google.apiKey') ? 'blue' : 'amber',
+          sub: App.store.get('settings.google.apiKey')
+            ? 'searching ' + (App.store.get('settings.google.city', 'Addis Ababa') || 'Addis Ababa')
+            : 'paste the key to search real listings',
+          cta: 'Maps settings', icon: 'fa-map-location-dot', action: 'settings.tab', arg: 'google' },
+        { label: 'Drive', value: App.cloud && App.cloud.isConnected() ? 'Connected' : 'Off',
+          tone: App.cloud && App.cloud.isConnected() ? 'lime' : 'amber',
+          sub: App.cloud && App.cloud.isConnected() ? (App.store.get('settings.cloud.account', '') || 'workspace in your Drive') : 'sign in to sync every device',
+          cta: 'Cloud settings', icon: 'fa-cloud', action: 'settings.tab', arg: 'cloud' },
+        { label: 'AI', value: App.ai && App.ai.ready() ? 'Ready' : 'No key',
+          tone: App.ai && App.ai.ready() ? 'violet' : 'amber',
+          sub: App.ai && App.ai.ready() ? (App.ai.model() || 'picking a live model') : 'add the Gemini key to draft sites and replies',
+          cta: 'AI settings', icon: 'fa-wand-magic-sparkles', action: 'settings.tab', arg: 'ai' }
+      ]);
+
+      const GROUPS = [
+        ['company', 'Company', 'fa-building'], ['identity', 'Identity', 'fa-palette'],
+        ['security', 'Security', 'fa-shield-halved'], ['cloud', 'Cloud & backup', 'fa-cloud'],
+        ['google', 'Google Maps', 'fa-map-location-dot'], ['ai', 'AI', 'fa-wand-magic-sparkles'],
+        ['outreach', 'Outreach', 'fa-paper-plane'], ['integrations', 'Integrations', 'fa-plug'],
+        ['guide', 'Guide', 'fa-book']
+      ];
+      const rail = '<nav class="set-rail">' + GROUPS.map(g =>
+        '<button class="set-rail__item' + (tab === g[0] ? ' is-on' : '') + '" data-action="settings.tab" data-arg="' + g[0] + '">' +
+        ui.icon(g[2]) + '<span>' + U.esc(g[1]) + '</span></button>').join('') + '</nav>';
+
+      const BODY = {
+        company: companyCard() + socialsCard(),
+        identity: brandingCard(),
+        security: securityCard() + accountCard(),
+        cloud: cloudCard() + dataCard(),
+        google: discoveryCard(),
+        ai: aiCard(),
+        outreach: outreachCard() + messagesCard(),
+        integrations: integrationCard(),
+        guide: helpCard()
+      };
+
       el.innerHTML =
-        '<div class="flex flex-wrap gap-1.5 mb-4">' + chips + '</div>' +
-        companyCard() + socialsCard() + brandingCard() + accountCard() + securityCard() + cloudCard() +
-        discoveryCard() + aiCard() + outreachCard() + messagesCard() + integrationCard() + dataCard() +
-        helpCard() +
-        ui.card(ui.head('About') +
-          '<p class="text-[10px] text-textMuted">Triverse OS · discovery, websites, outreach, CRM and billing. ' +
-          'Runs from a folder or as the single file <b class="text-ink">triverse-os.html</b>. ' +
-          'Business data comes from Google Maps or your own import, and every number starts at zero because nothing is invented.</p>', 'mt-4');
+        hero +
+        '<div class="set-shell mt-4">' + rail + '<div class="set-pane">' + (BODY[tab] || BODY.company) + '</div></div>';
     }
   };
 
@@ -865,14 +906,11 @@
     });
   });
 
-  /* settings section chips scroll inside the view (without touching the hash router) */
-  document.addEventListener('click', ev => {
-    const link = ev.target.closest('a[href^="#settings-"]');
-    if (!link) return;
-    const target = document.getElementById(link.getAttribute('href').slice(1));
-    if (!target) return;
-    ev.preventDefault();
-    const scroller = document.getElementById('scroll-area');
-    if (scroller) scroller.scrollTo({ top: Math.max(0, target.offsetTop - 24), behavior: 'smooth' });
+  /* moving between settings sections is page state, never a change to the URL */
+  App.action('settings.tab', el => {
+    tabState().tab = el.getAttribute('data-arg') || 'company';
+    const s = document.getElementById('scroll-area');
+    if (s) s.scrollTo({ top: 0, behavior: 'smooth' });
+    App.emit('state:changed', { path: 'settings' });
   });
 })(window);

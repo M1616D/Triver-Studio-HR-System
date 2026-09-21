@@ -117,21 +117,24 @@
       const st = App.msg.stats(leads);
       const sentToday = U.sum(leads, l => (l.outreach || []).filter(x => x.at && x.at.slice(0, 10) === U.todayISO()).length);
 
+      const limit = App.store.get('settings.outreach.dailySendLimit', 40);
       el.innerHTML =
-        '<div class="four-col mb-4">' +
-        ui.stat({ tag: 'Volume', label: 'Messages sent today', value: sentToday + ' / ' + App.store.get('settings.outreach.dailySendLimit', 40), badge: U.num(st.sent) + ' all time', sub: 'Keep it human — under 40 a day protects your number' }) +
-        ui.stat({ tag: 'Replies', label: 'Reply rate', value: st.replyRate + '%', badge: st.replied + ' replies', tone: st.replyRate >= 20 ? 'lime' : 'amber', sub: 'Industry average for cold WhatsApp is 8–15%' }) +
-        ui.stat({ tag: 'Quality', label: 'Positive replies', value: st.positive + '', badge: st.positiveRate + '% positive', sub: 'Negative/stop: ' + st.negative + ' → skipped automatically' }) +
-        ui.stat({ tag: 'Money', label: 'Open pipeline value', value: U.money(st.pipelineValue), badge: st.interested + ' interested', sub: 'Interested + proposal + in conversation' }) +
-        '</div>' +
+        ui.hero([
+          { label: 'Sent today', value: sentToday + ' / ' + limit, tone: sentToday >= limit ? 'amber' : 'lime',
+            sub: U.num(st.sent) + ' sent all time' },
+          { label: 'Reply rate', value: st.replyRate + '%', tone: st.replyRate >= 20 ? 'lime' : 'amber',
+            sub: st.replied + ' replies · ' + st.positive + ' positive' },
+          { label: 'Open pipeline', value: U.money(st.pipelineValue), tone: 'violet',
+            sub: st.interested + ' interested · ' + hotList().length + ' to work now' }
+        ]) +
 
-        '<div class="two-col">' +
-        '<div class="space-y-4">' + composer(lead) + '</div>' +
-        '<div class="space-y-4">' +
-        queueCard('Hot — they replied positively', 'Work these first: send the price or the demo', hotList(), { tone: 'lime', showValue: true, emptyText: 'No positive replies yet', emptySub: 'Send your first batch from Discover', emptyIcon: 'fa-fire' }) +
-        queueCard('Follow-ups due', 'No reply yet — nudge once, then stop', dueList(), { tone: 'amber', showDue: true, emptyText: 'No follow-ups due today', emptyIcon: 'fa-clock' }) +
-        queueCard('Needs triage', 'Replies the filters could not judge — set the sentiment yourself', triageList(), { tone: 'violet', action: 'outreach.logReply', emptyText: 'Nothing to triage', emptyIcon: 'fa-scale-balanced' }) +
-        queueCard('Do not chase', 'Rejected or lost — kept for the 12-month revisit', stoppedList(), { tone: 'red', emptyText: 'Nobody has said no yet', emptyIcon: 'fa-ban' }) +
+        '<div class="dash__grid">' +
+        '<div class="dash__main">' + composer(lead) + '</div>' +
+        '<div class="dash__side">' +
+        queueCard('Hot — replied positively', 'Send the price or the demo', hotList(), { tone: 'lime', showValue: true, emptyText: 'No positive replies yet', emptySub: 'Send your first batch from Discover', emptyIcon: 'fa-fire' }) +
+        queueCard('Follow-ups due', 'Nudge once, then stop', dueList(), { tone: 'amber', showDue: true, emptyText: 'No follow-ups due today', emptyIcon: 'fa-clock' }) +
+        queueCard('Needs triage', 'Replies the filters could not judge', triageList(), { tone: 'violet', action: 'outreach.logReply', emptyText: 'Nothing to triage', emptyIcon: 'fa-scale-balanced' }) +
+        queueCard('Do not chase', 'Kept for the 12-month revisit', stoppedList(), { tone: 'red', emptyText: 'Nobody has said no yet', emptyIcon: 'fa-ban' }) +
         '</div></div>';
 
       if (s.mode === 'reply' && params) { s.mode = 'compose'; replyModal(params); }

@@ -38,8 +38,12 @@ and the studio's own social links on the left, one panel on the right.
 - **Continue on this device** — opens the copy kept in this browser.
 - **Open a backup file** — restores from an exported JSON backup instead.
 
-If you protected the workspace with a passphrase, the passphrase screen is the
-sign-in page for this device, and it comes straight after (or instead).
+It is three buttons and nothing else — **no email box and no password to
+remember**. The studio owns this workspace, so there is no account to create.
+
+A passphrase is asked for only if *you* turned on **Settings → Security →
+Protect this workspace**, and only after you have picked one of the three
+buttons above. A workspace with no passphrase opens on a single press.
 
 The choice lasts 14 days on that browser. **Settings → This device** shows how
 the session opened, where the data is kept, and has **Show the sign-in page** and
@@ -143,8 +147,22 @@ repository, live address and its own notes. Attach files to it and they appear o
 the project as well as in the vault.
 
 ### File vault
-**Add files** (or drop them on the box) and upload anything: a whole HTML/CSS/JS
-build, PHP, Python, logos, contracts, invoices, invoices PDF, archives, fonts.
+The vault works like a real file manager, not a flat list.
+
+- **Add files** takes a **whole folder** as easily as one file. Drop a folder on
+the box and it keeps its shape: `client-site/css/main.css` stays inside
+`client-site/css`. Drag-and-drop is the same — the folder arrives with its tree
+intact.
+- **Touch a folder to look inside it.** The bar above the list always shows where
+you are (`Vault root › Addis Clients › 2026`); press any crumb to go back up.
+- **New folder** creates one inside wherever you are standing, so structure can
+exist before the files do. Each folder tile shows how many items it holds.
+- **Rename** a folder and every file inside follows it to the new name.
+- **Delete** a folder and everything inside it goes with it, after a confirmation
+that tells you how many files that is.
+
+Upload anything: a whole HTML/CSS/JS build, PHP, Python, logos, contracts,
+invoices, PDFs, archives, fonts.
 
 Every file keeps a full record — name, type, extension, size in bytes, version,
 language/stack, **SHA-256 checksum**, category, the project and client it belongs
@@ -161,6 +179,12 @@ export.
 
 ### Catalogue and Samples
 What you sell with Ethiopian prices, and your sample pages and design templates.
+
+**Settings** is now a rail of nine sections — Company, Identity, Security, Cloud
+& backup, Google Maps, AI, Outreach, Integrations and Guide — with one open at a
+time, and a strip at the top showing the studio name, whether Maps is connected,
+whether Drive is connected and whether the AI has a key. No more scrolling
+through thirteen stacked cards to find one field.
 
 ### The design library (how a website gets built)
 
@@ -283,9 +307,12 @@ npm run check-samples   # clone every sample for a business of its category
 
 Settings → **Social & business profiles** holds every place the studio can be found —
 website, portfolio, Telegram channel and group, WhatsApp, Instagram, Facebook, TikTok,
-LinkedIn, Upwork, Fiverr, Afriwork and GitHub. Type a full link or just the handle. The
-small round links appear at the bottom of the sidebar as soon as a field has a value, and a
-blank field stays hidden — nothing needs switching on.
+LinkedIn, Upwork, Fiverr, Afriwork and GitHub. Type a full link or just the handle.
+
+The links show up as a quiet strip along the bottom of the workspace as soon as a
+field has a value, and a blank field stays hidden — nothing needs switching on.
+Every network uses the **same single-colour chip**: no per-brand colours and no
+gradient tiles, so the strip reads as one row of links rather than a row of logos.
 
 ---
 

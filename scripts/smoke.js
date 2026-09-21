@@ -1110,6 +1110,105 @@ check('samples: the food family is used for a cafe, the shop family for a dentis
   assert(App.samples.forBusiness({ businessType: 'dentist', name: '' }).category === 'shop', 'a dentist did not get the shop design');
 });
 
+/*
+ * The regression the studio hit in real life: uploading a whole design folder
+ * came back with its pictures stripped and its stylesheet rewritten. This runs
+ * the real bundler over a real uploaded folder and proves both survive.
+ */
+checkAsync('samples: a real uploaded folder keeps its pictures, styles and copy', async () => {
+  const LIB = path.join(__dirname, '..', '.sample-preview');
+  if (!fs.existsSync(LIB)) return;   /* the raw design library never ships with the repo */
+
+  const walk = (dir, base, all) => {
+    fs.readdirSync(dir, { withFileTypes: true }).forEach(e => {
+      const full = path.join(dir, e.name);
+      if (e.isDirectory()) walk(full, base, all);
+      else all.push({ full: full, rel: path.relative(base, full).replace(/\\/g, '/') });
+    });
+    return all;
+  };
+
+  /* two real designs: one driven by its own stylesheet, one photo-heavy QR menu */
+  const designs = [
+    { dir: path.join(LIB, 'SAS-UI', 'JARVIS', 'New folder'), label: 'the JARVIS dashboard design', token: 'col-group-1' },
+    { dir: path.join(LIB, 'Digtal-qr-menu', 'Sunset-Cafe-main'), label: 'the Sunset Cafe QR menu design', token: 'main-header' }
+  ].filter(d => fs.existsSync(d.dir));
+  assert(designs.length > 0, 'no uploaded design was available to test with');
+
+  for (let d = 0; d < designs.length; d++) {
+    const DIR = designs[d].dir, label = designs[d].label;
+    const entries = walk(DIR, DIR, []);
+    const IMAGE = /\.(png|jpe?g|webp|gif|svg|avif)$/i;
+    const feed = entries.filter(e => /\.html?$/i.test(e.rel) || /\.(css|js)$/i.test(e.rel) || IMAGE.test(e.rel));
+    const files = feed.map(e => {
+      const blob = new Blob([fs.readFileSync(e.full)], { type: IMAGE.test(e.rel) ? 'image/' + e.rel.split('.').pop().toLowerCase() : 'text/plain' });
+      blob.name = e.rel.split('/').pop();
+      blob.webkitRelativePath = 'design/' + e.rel;
+      return blob;
+    });
+
+    const res = await App.samples.bundle(files, { name: 'Design under test' });
+    assert(res && res.html, label + ' produced no design');
+    const page = res.html;
+
+    /* stylesheets and scripts are folded in byte for byte. The old scanner read
+       CSS as page copy and wrote the client's address inside it, corrupting the
+       design — this is the exact regression this check exists for. */
+    const inlinedCss = (page.match(/<style[^>]*>[\s\S]*?<\/style>/gi) || [])
+      .map(b => b.replace(/^<style[^>]*>/i, '').replace(/<\/style>$/i, ''));
+    const inlinedJs = (page.match(/<script[^>]*>[\s\S]*?<\/script>/gi) || [])
+      .map(b => b.replace(/^<script[^>]*>/i, '').replace(/<\/script>$/i, ''));
+    feed.filter(e => /\.css$/i.test(e.rel)).forEach(e => {
+      const css = fs.readFileSync(e.full, 'utf8');
+      assert(inlinedCss.some(t => t === css), label + ': the stylesheet ' + e.rel + ' came back changed');
+    });
+    const mainHtml = feed.filter(e => /\.html?$/i.test(e.rel))[0];
+    const original = fs.readFileSync(mainHtml.full, 'utf8');
+    /* a script is carried when the page links it, or when it is the folder's only
+       one and the page has none at all; a page with its own inline script keeps it */
+    if (!/<script\b/i.test(original)) {
+      feed.filter(e => /\.js$/i.test(e.rel)).forEach(e => {
+        const js = fs.readFileSync(e.full, 'utf8');
+        assert(inlinedJs.some(t => t === js), label + ': the script ' + e.rel + ' came back changed');
+      });
+    }
+    /* an uploaded folder whose page never linked its stylesheet still comes out
+       styled, with the stylesheet carried byte for byte */
+    if (!/<style\b|rel=["']stylesheet/i.test(original)) {
+      feed.filter(e => /\.css$/i.test(e.rel)).forEach(e => {
+        const css = fs.readFileSync(e.full, 'utf8');
+        assert(inlinedCss.some(t => t === css), label + ': the folder stylesheet ' + e.rel + ' was not attached verbatim');
+      });
+    }
+
+    /* markup only: inside <script> the design builds img tags from template
+       strings at runtime, which are not markup and must not be read as one */
+    const markup = page.replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, '');
+    const imgs = (markup.match(/<img\b[^>]*>/gi) || []);
+    /* an empty src is the design's own lightbox placeholder, filled by its script */
+    const broken = imgs.filter(t => /src=["']\s*[^"'\s][^"']*["']/i.test(t) && !/src=["'](data:|https?:|\/\/)/i.test(t));
+    assert(broken.length === 0, label + ': ' + broken.length + ' picture(s) point at a file that is not in the bundle: ' + (broken[0] || '').slice(0, 120));
+
+    const imageFiles = feed.filter(e => IMAGE.test(e.rel)).length;
+    if (imageFiles) {
+      assert(res.carried && res.carried.images > 0, label + ': no picture was carried at all');
+      const asData = (page.match(/data:image\//g) || []).length;
+      assert(asData >= res.carried.images, label + ': only ' + asData + ' pictures actually landed in the page');
+      /* nothing still points at a picture file that was not bundled */
+      const missing = (page.match(/(?:src|url\()\s*["']?[^"')]*\/images\/[^"')]+/gi) || []).filter(t => !/data:/.test(t));
+      assert(missing.length === 0, label + ': still points at un-bundled files: ' + String(missing[0]).slice(0, 100));
+    }
+
+    /* the design's own markup is still there, not reshuffled into generated copy */
+    const inSource = feed.filter(e => /\.html?$/i.test(e.rel))
+      .some(e => fs.readFileSync(e.full, 'utf8').indexOf(designs[d].token) !== -1);
+    assert(inSource, label + ': the fixture token is not in the source design');
+    assert(page.indexOf(designs[d].token) !== -1, label + ': the design lost its own markup (' + designs[d].token + ')');
+    /* and the page is still a complete document, not a stub */
+    assert(/<\/html>\s*$/i.test(page.trim()), label + ': the bundled page is not a complete document');
+  }
+});
+
 check('samples: cloning changes only the information, never the design', () => {
   seedDesigns();
   const lead = {
@@ -1135,6 +1234,17 @@ check('samples: cloning changes only the information, never the design', () => {
   assert(out.html.indexOf(sampleCss.slice(0, 300)) !== -1,
     'the cloned page lost the design stylesheet (' + sampleCss.length + ' in, ' + outCss.length + ' out)');
   assert(out.html.indexOf('linear-gradient(#123,#456)') !== -1, 'the cloned page lost the uploaded design');
+  // the design's own content is never reshuffled: photos, prices and dish copy stay
+  assert(out.html.indexOf('Signature dish') !== -1, 'the design lost its own menu section');
+  assert(out.html.indexOf('Br 250') !== -1, 'the design lost its own prices');
+  assert(/<img[^>]*src=["']local\/hero\.jpg["']/.test(out.html), 'the design lost its own picture');
+  // the design already has its own call link, so nothing is injected at all
+  assert(out.html.indexOf('tv-contact-dock') === -1, 'a contact dock was injected over a design that has its own contact');
+  // a design with no contact gets one docked below the design's own popups
+  const bare = JSON.parse(JSON.stringify(Object.assign({}, sample, { html: sample.html.replace(/<a href="tel:[^"]*"[^>]*>[^<]*<\/a>/i, '').replace(/<a href="https:\/\/wa[^"]*"[^>]*>[^<]*<\/a>/i, '') })));
+  const out2 = App.samples.fill(bare, lead, {});
+  const dockZ = (out2.html.match(/tv-contact-dock"[^>]*z-index:(\d+)/) || [])[1];
+  assert(dockZ && Number(dockZ) < 1000, 'the contact dock can cover the design\u2019s own popups: z ' + dockZ);
 });
 
 check('samples: an uploaded page is analysed, saved and then cloned with its own look', () => {

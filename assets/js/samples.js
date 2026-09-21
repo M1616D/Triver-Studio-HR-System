@@ -336,15 +336,10 @@
       // 2. any leftover placeholder we do not know: empty, never shown raw
       html = html.replace(/\{\{[^}]{1,40}\}\}/g, '');
 
-      // 3. samples written for someone else: swap their own facts for this one
+      // 3. the design's own facts become this business's facts — identity only:
+      //    name, phone, email, socials, map, address. Images, prices, opening
+      //    hours and the layout are left exactly as the design ships them.
       const fill = samples.autoFill(html, lead, sample.analysis || samples.analyse(sample.html), map);
-
-      // 4. unknown photo hosts in a cloned sample would 404 — drop them
-      fill.html = fill.html.replace(/<img\b[^>]*>/gi, tag => {
-        const src = (tag.match(/src=["']([^"']+)["']/i) || [])[1] || '';
-        if (!src || /^data:/i.test(src) || /googleusercontent|maps\.gstatic|encrypted-tbn|https?:\/\//i.test(src)) return tag;
-        return tag.replace(/src=["'][^"']*["']/i, 'src=""');
-      });
 
       return { html: fill.html, used: used, swapped: fill.swapped, map: map };
     },
@@ -404,19 +399,6 @@
         swapped.push('map');
       }
 
-      // a real photo where the sample used its own
-      const photos = lead.photos || [];
-      if (photos.length) {
-        let n = 0;
-        out = out.replace(/<img\b[^>]*>/gi, tag => {
-          if (/logo|icon|avatar|sprite|\.svg/i.test(tag)) return tag;
-          const src = photos[n % photos.length];
-          n++;
-          return tag.replace(/src=["'][^"']*["']/i, 'src="' + src + '"');
-        });
-        if (n) swapped.push('photos: ' + n);
-      }
-
       // the sample's own address text
       ((analysis && analysis.addresses) || []).forEach(a => {
         if (!a || !lead.address || /[{};]/.test(a)) return;
@@ -424,25 +406,8 @@
         swapped.push('address');
       });
 
-      // its own price numbers, in order, become ours
-      const items = App.sitegen.items(lead);
-      let priceIdx = 0;
-      out = out.replace(/(?:\$|Br\s?|ETB\s?)(\d[\d,]{2,7})(?![\d])/g, m => {
-        if (priceIdx >= items.length || !items[priceIdx].price) return m;
-        const v = U.money(items[priceIdx].price);
-        priceIdx++;
-        return v;
-      });
-      if (priceIdx) swapped.push('prices: ' + priceIdx);
-
-      // hours blocks: replace a sample's weekday rows with the real ones
-      if (lead.hoursWeek && lead.hoursWeek.length) {
-        out = out.replace(/<([a-z0-9]+)([^>]*class=["'][^"']*(?:hours|opening|schedule|time)[^"']*["'][^>]*)>([\s\S]{0,600}?)<\/\1>/i,
-          (m, tag, attrs, inner) => {
-            if (!/\b(mon|tue|wed|thu|fri|sat|sun)/i.test(inner)) return m;
-            return '<' + tag + attrs + '>' + map.hours_rows + '</' + tag + '>';
-          });
-      }
+      /* the design's own pictures, prices, hours and layout are NOT rewritten.
+         A clone is the design with new contact details, never a reshuffle. */
 
       return { html: samples.ensureEssentials(out, lead, map, swapped), swapped: swapped };
     },
@@ -462,7 +427,10 @@
       const pill = 'display:inline-flex;align-items:center;gap:.5rem;padding:.7rem 1.15rem;border-radius:999px;' +
         'font:600 14px/1 Inter,system-ui,sans-serif;text-decoration:none;box-shadow:0 8px 24px rgba(0,0,0,.28)';
 
-      /* 1. a way to call or message, when the design has none of its own */
+      /* 1. a way to call or message, when the design has none of its own.
+         The dock sits above the page but below any menu, modal or popup the
+         design itself opens (those typically use 1000+), and the dock starts
+         collapsed to a round button so it can never cover content. */
       if (!/href=["']tel:/i.test(out) && !/href=["']https:\/\/wa\.me/i.test(out) && dial) {
         const chips = [];
         chips.push('<a href="tel:' + dial + '" style="' + pill + ';background:#cbfa31;color:#0b1205">' +
@@ -471,8 +439,12 @@
           '<i class="fa-brands fa-whatsapp"></i> WhatsApp</a>');
         if (dir) chips.push('<a href="' + esc(dir) + '" target="_blank" rel="noopener" style="' + pill + ';background:#111827;color:#fff;border:1px solid rgba(255,255,255,.25)">' +
           '<i class="fa-solid fa-location-dot"></i> Directions</a>');
-        out = out.replace(/<\/body>/i, '<div style="position:fixed;right:16px;bottom:16px;z-index:9999;display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end">' +
-          chips.join('') + '</div></body>');
+        const dock = '<div id="tv-contact-dock" style="position:fixed;right:16px;bottom:16px;z-index:900;display:flex;flex-direction:column;align-items:flex-end;gap:8px">' +
+          '<div id="tv-dock-chips" style="display:none;flex-direction:column;gap:8px;align-items:flex-end">' + chips.join('') + '</div>' +
+          '<button type="button" aria-label="Contact ' + esc(lead.name || 'us') + '" onclick="var c=document.getElementById(\'tv-dock-chips\');c.style.display=c.style.display===\'flex\'?\'none\':\'flex\'" style="' + pill +
+          ';background:#cbfa31;color:#0b1205;border:0;cursor:pointer;padding:.85rem">' +
+          '<i class="fa-solid fa-comments"></i></button></div>';
+        out = out.replace(/<\/body>/i, dock + '</body>');
         swapped.push('contact dock added');
       }
 
@@ -564,43 +536,91 @@
       return readText(main).then(html => {
         let out = html;
         const carried = { styles: 0, scripts: 0, images: 0, skipped: 0, bytes: 0 };
-        const budget = { left: Number(opts.imageBudget || 3 * 1024 * 1024) };
+        const budget = { left: Number(opts.imageBudget || 12 * 1024 * 1024) };
 
-        const jobs = [];
-        const jobsFor = (re, build) => {
-          out.replace(re, (m, ref) => { const key = resolve(ref); if (key) jobs.push(build(key, m, ref)); return m; });
+        /*
+         * Two passes. Pass one reads every linked stylesheet and script and
+         * inlines it. Pass two then scans the FINISHED text - including inside
+         * the inlined <style> blocks - for image references, so a background
+         * declared in a linked stylesheet is carried just like one written
+         * directly in the page. Nothing else in the markup is touched.
+         */
+        /*
+         * A design whose page does not link its own stylesheet is common: people
+         * upload a fragment plus a stylesheet beside it. If the page ends up with
+         * no stylesheet at all and the folder holds exactly one, that one is the
+         * design's own - attach it, so the uploaded design is never left bare.
+         */
+        const onlyLocal = ext => list.filter(f => new RegExp('\\.' + ext + '$', 'i').test(pathOf(f)));
+        const attachOrphans = () => {
+          const hasStyle = /<style\b|rel=["']stylesheet/i.test(out);
+          const css = onlyLocal('css');
+          const jobs = [];
+          if (!hasStyle && css.length === 1) jobs.push({ kind: 'css', key: pathOf(css[0]) });
+          const hasScript = /<script\b/i.test(out);
+          const js = onlyLocal('js');
+          if (!hasScript && js.length === 1) jobs.push({ kind: 'js', key: pathOf(js[0]) });
+          if (!jobs.length) return Promise.resolve();
+          /* a fragment has no <head>; give it the wrapper the browser would add */
+          if (!/<html\b/i.test(out)) out = '<!doctype html>\n<html lang="en">\n<head>\n<meta charset="utf-8">\n<meta name="viewport" content="width=device-width, initial-scale=1">\n</head>\n<body>\n' + out + '\n</body>\n</html>';
+          return jobs.reduce((chain, job) => chain.then(() => {
+            const f = byPath[job.key];
+            if (!f) return;
+            return readText(f).then(text => {
+              const tag = job.kind === 'css'
+                ? '<style data-design="' + job.key + '">' + text + '</style>'
+                : '<script data-design="' + job.key + '">' + text + '<\/script>';
+              if (job.kind === 'css') carried.styles++; else carried.scripts++;
+              /* inside <head> when there is one, otherwise just before the close */
+              if (/<\/head>/i.test(out)) out = out.replace(/<\/head>/i, tag + '\n</head>');
+              else out = out.replace(/<\/body>/i, tag + '\n</body>');
+            });
+          }), Promise.resolve());
         };
-        jobsFor(/<link\b[^>]*href=["']([^"']+)["'][^>]*>/gi, (key, m) => ({ kind: 'css', key: key, match: m }));
-        jobsFor(/<script\b[^>]*src=["']([^"']+)["'][^>]*>\s*<\/script>/gi, (key, m) => ({ kind: 'js', key: key, match: m }));
-        jobsFor(/<img\b[^>]*src=["']([^"']+)["']/gi, (key, m, ref) => ({ kind: 'img', key: key, ref: ref }));
-        jobsFor(/url\(\s*["']?([^"')]+)["']?\s*\)/gi, (key) => ({ kind: 'img', key: key }));
-
-        return jobs.reduce((chain, job) => chain.then(() => {
-          const f = byPath[job.key];
-          if (!f) return;
-          if (job.kind === 'img') {
-            if (Number(f.size || 0) > budget.left || Number(f.size || 0) > 900 * 1024) { carried.skipped++; return; }
+        const inlineCode = () => {
+          const jobs = [];
+          out.replace(/<link\b[^>]*href=["']([^"']+)["'][^>]*>/gi, (m, ref) => {
+            const key = resolve(ref); if (key) jobs.push({ kind: 'css', key: key, match: m }); return m;
+          });
+          out.replace(/<script\b[^>]*src=["']([^"']+)["'][^>]*>\s*<\/script>/gi, (m, ref) => {
+            const key = resolve(ref); if (key) jobs.push({ kind: 'js', key: key, match: m }); return m;
+          });
+          return jobs.reduce((chain, job) => chain.then(() => {
+            const f = byPath[job.key];
+            if (!f) return;
+            return readText(f).then(text => {
+              if (job.kind === 'css') {
+                carried.styles++;
+                out = out.replace(job.match, '<style data-design="' + job.key + '">' + text + '</style>');
+              } else {
+                carried.scripts++;
+                out = out.replace(job.match, '<script data-design="' + job.key + '">' + text + '<\/script>');
+              }
+            });
+          }), Promise.resolve());
+        };
+        const inlineImages = () => {
+          const refs = [];
+          const seen = {};
+          const push = ref => { const key = resolve(ref); if (key && !seen[key]) { seen[key] = 1; refs.push({ key: key, ref: ref }); } };
+          out.replace(/<img\b[^>]*src=["']([^"']+)["']/gi, (m, ref) => { push(ref); return m; });
+          out.replace(/url\(\s*["']?([^"')]+)["']?\s*\)/gi, (m, ref) => { push(ref); return m; });
+          out.replace(/<source\b[^>]*src=["']([^"']+)["']/gi, (m, ref) => { push(ref); return m; });
+          out.replace(/<video\b[^>]*poster=["']([^"']+)["']/gi, (m, ref) => { push(ref); return m; });
+          return refs.reduce((chain, job) => chain.then(() => {
+            const f = byPath[job.key];
+            if (!f) return;
+            if (Number(f.size || 0) > budget.left || Number(f.size || 0) > 4 * 1024 * 1024) { carried.skipped++; return; }
             return readUrl(f).then(url => {
               budget.left -= Number(f.size || 0);
               carried.images++;
               carried.bytes += url.length;
-              // swap every reference to this exact picture, wherever it is written
-              out = out.split(job.key).join(url);
-              if (job.ref && job.ref !== job.key) out = out.split(job.ref).join(url);
+              out = out.split(job.ref).join(url);
+              if (job.key !== job.ref) out = out.split(job.key).join(url);
             });
-          }
-          return readText(f).then(text => {
-            if (job.kind === 'css') {
-              carried.styles++;
-              carried.bytes += text.length;
-              out = out.replace(job.match, '<style data-design="' + job.key + '">' + text + '</style>');
-            } else {
-              carried.scripts++;
-              carried.bytes += text.length;
-              out = out.replace(job.match, '<script data-design="' + job.key + '">' + text + '<\/script>');
-            }
-          });
-        }), Promise.resolve()).then(() => readText(main)).then(() => {
+          }), Promise.resolve());
+        };
+        return inlineCode().then(attachOrphans).then(inlineImages).then(() => {
           const extras = [];
           return pages.reduce((chain, f) => chain.then(() => {
             if (pathOf(f) === mainPath) return;

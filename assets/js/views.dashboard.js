@@ -87,6 +87,40 @@
       '</div>';
   }
 
+  /* the two numbers that decide the day, read in one glance */
+  function heroRow(m) {
+    const ls = m.leadStats;
+    return '<div class="dash-hero">' +
+      '<div class="dash-hero__cell">' +
+      '<p class="dash-hero__label">Open pipeline</p>' +
+      '<p class="dash-hero__value">' + U.money(ls.pipelineValue) + '</p>' +
+      '<p class="dash-hero__sub">' + ls.noWebsite + ' of ' + ls.total + ' businesses still have no website · ' + ls.interested + ' interested</p>' +
+      '<button class="btn btn-ghost btn-sm mt-3" data-action="focus.discover"><i class="fa-solid fa-map-location-dot"></i> Find more</button>' +
+      '</div>' +
+      '<span class="dash-hero__rule"></span>' +
+      '<div class="dash-hero__cell">' +
+      '<p class="dash-hero__label">Collected this month</p>' +
+      '<p class="dash-hero__value">' + U.money(m.monthCollected) + '</p>' +
+      '<p class="dash-hero__sub">' + (m.outstanding ? U.money(m.outstanding) + ' outstanding' + (m.overdue ? ' · ' + U.money(m.overdue) + ' overdue' : '') : 'everything on time') + '</p>' +
+      '<button class="btn btn-ghost btn-sm mt-3" data-nav="payments"><i class="fa-solid fa-wallet"></i> Money</button>' +
+      '</div>' +
+      '</div>';
+  }
+
+  function opportunityCard(m) {
+    return ui.card(ui.head('Top opportunities', '<button class="btn btn-ghost btn-sm" data-nav="pipeline">All</button>', 'Highest value open leads') +
+      (function () {
+        const top = U.sortBy(m.leads.filter(l => ['new', 'qualified', 'contacted', 'replied', 'interested', 'proposal'].indexOf(l.status) !== -1), l => Number(l.value) || 0, 'desc').slice(0, 5);
+        if (!top.length) return ui.empty('No open leads', 'Discover businesses to get started', 'fa-bullseye');
+        return '<div class="space-y-2">' + top.map(l =>
+          '<div class="row-card p-2.5 flex items-center gap-3" data-action="lead-open" data-arg="' + l.id + '">' +
+          ui.avatar(l.name, 'w-7 h-7 text-[10px]') +
+          '<div class="min-w-0 flex-1"><p class="text-[11px] font-semibold truncate">' + U.esc(l.name) + '</p>' +
+          '<p class="text-[9px] text-textMuted truncate">' + U.esc(l.category) + ' · ' + (l.website ? 'has website' : 'no website') + '</p></div>' +
+          '<span class="text-[10px] font-bold text-limeAccent">' + U.money(l.value) + '</span></div>').join('') + '</div>';
+      })());
+  }
+
   /** shown until the first business is discovered — three obvious next moves */
   function startCard() {
     const cards = [
@@ -177,42 +211,30 @@
       const c = App.store.get('settings.company', {});
       const activities = App.store.get('activities', []).slice(0, 8);
 
+      /*
+       * The new structure: a hero strip of the two numbers that decide the
+       * day, then Today first (the worklist is why you opened the app), the
+       * funnel and money side by side beneath, activity and opportunities
+       * last. Assets moved into Discover and Projects where they live.
+       */
       el.innerHTML =
-        (m.leads.length ? kpiRow(m) : startCard()) +
-        '<div class="two-col mt-5">' +
-        '<div class="space-y-4">' + funnelCard(m) +
+        (m.leads.length ? heroRow(m) : startCard()) +
+        '<div class="dash__grid">' +
+        '<div class="dash__main">' + todayCard(m) + funnelCard(m) +
         ui.card(ui.head('Collections — last 8 months', ui.badge('collected ' + U.money(m.collected), 'lime'), 'Paid and partially paid invoices, in Ethiopian Birr') +
           ui.bars(m.revenueByMonth, { highlight: m.revenueByMonth[m.revenueByMonth.length - 1].key }) +
-          '<div class="flex items-center gap-2 text-[10px] text-textMuted mt-2"><span class="w-2 h-2 rounded-full bg-limeAccent"></span> This month <span class="text-white font-semibold">' + U.money(m.monthCollected) + '</span></div>') +
-        ui.card(ui.head('Business assets', '<button class="btn btn-ghost btn-sm" data-nav="sites">Manage</button>', 'Websites, samples and templates you already own') +
-          '<div class="grid grid-cols-2 md:grid-cols-4 gap-2 text-center">' +
-          [['Live websites', m.sitesLive], ['Sample pages', m.sitesSample], ['Generated drafts', m.sitesDraft], ['Templates', m.templates]].map(x =>
-            '<div class="bg-field border border-line rounded-xl p-2.5"><p class="text-lg font-black text-limeAccent">' + x[1] + '</p><p class="text-[9px] text-textMuted">' + x[0] + '</p></div>').join('') +
-          '</div>' +
-          '<div class="grid grid-cols-2 gap-2 mt-3">' +
-          '<div class="glass-soft rounded-xl p-3"><p class="text-[9px] text-textMuted">Active clients</p><p class="text-base font-bold text-limeAccent">' + m.activeClients + '</p></div>' +
-          '<div class="glass-soft rounded-xl p-3"><p class="text-[9px] text-textMuted">Rejected (do not chase)</p><p class="text-base font-bold text-red-300">' + m.rejectedClients + '</p></div>' +
-          '</div>') +
+          '<div class="flex items-center gap-2 text-[10px] text-textMuted mt-2"><span class="w-2 h-2 rounded-full bg-limeAccent"></span> This month <span class="font-semibold">' + U.money(m.monthCollected) + '</span></div>') +
         '</div>' +
-        '<div class="space-y-4">' + todayCard(m) +
+        '<div class="dash__side">' +
         ui.card(ui.head('Recent activity', '<button class="btn btn-ghost btn-sm" data-nav="pipeline">Pipeline</button>') +
           (activities.length ? '<div class="space-y-3 stagger">' + activities.map(a =>
             '<div class="flex gap-2.5"><span class="mt-0.5">' + activityIcon(a.kind) + '</span>' +
             '<div class="min-w-0"><p class="text-[10px] text-gray-300 leading-snug">' + U.esc(a.text) + '</p>' +
             '<p class="text-[9px] text-textMuted">' + U.relTime(a.at) + '</p></div></div>').join('') + '</div>'
             : ui.empty('No activity yet', '', 'fa-clock-rotate-left'))) +
-        ui.card(ui.head('Top opportunities', '<button class="btn btn-ghost btn-sm" data-nav="pipeline">All</button>', 'Highest value open leads') +
-          (function () {
-            const top = U.sortBy(m.leads.filter(l => ['new', 'qualified', 'contacted', 'replied', 'interested', 'proposal'].indexOf(l.status) !== -1), l => Number(l.value) || 0, 'desc').slice(0, 5);
-            if (!top.length) return ui.empty('No open leads', 'Discover businesses to get started', 'fa-bullseye');
-            return '<div class="space-y-2">' + top.map(l =>
-              '<div class="row-card p-2.5 flex items-center gap-3" data-action="lead-open" data-arg="' + l.id + '">' +
-              ui.avatar(l.name, 'w-7 h-7 text-[10px]') +
-              '<div class="min-w-0 flex-1"><p class="text-[11px] font-semibold truncate">' + U.esc(l.name) + '</p>' +
-              '<p class="text-[9px] text-textMuted truncate">' + U.esc(l.category) + ' · ' + (l.website ? 'has website' : 'no website') + '</p></div>' +
-              '<span class="text-[10px] font-bold text-limeAccent">' + U.money(l.value) + '</span></div>').join('') + '</div>';
-          })()) +
-        '</div></div>';
+        opportunityCard(m) +
+        '</div>' +
+        '</div>';
     }
   };
 
